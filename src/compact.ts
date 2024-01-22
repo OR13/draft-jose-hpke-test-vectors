@@ -9,7 +9,7 @@ const defaultSuite = new CipherSuite({
   aead: AeadId.Aes128Gcm,
 });
 
-export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any) => {
+export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any): Promise<string> => {
   if (publicKeyJwk.alg !== default_alg){
     throw new Error('Public key is not for: ' + default_alg)
   }
@@ -24,7 +24,7 @@ export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any) => {
 
 }
 
-export const decrypt = async (compact: string, privateKeyJwk: any) => {
+export const decrypt = async (compact: string, privateKeyJwk: any): Promise<Uint8Array> => {
   if (privateKeyJwk.alg !== default_alg){
     throw new Error('Public key is not for: ' + default_alg)
   }
@@ -33,7 +33,6 @@ export const decrypt = async (compact: string, privateKeyJwk: any) => {
     recipientKey: await privateKeyFromJwk(privateKeyJwk), // rkp (CryptoKeyPair) is also acceptable.
     enc: base64url.decode(encapsulatedKey)
   })
-  const pt = await recipient.open(base64url.decode(ciphertext), new TextEncoder().encode(protectedHeader))
-  return pt
-
+  const plaintext = await recipient.open(base64url.decode(ciphertext), new TextEncoder().encode(protectedHeader))
+  return new Uint8Array(plaintext)
 }
