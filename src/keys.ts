@@ -51,9 +51,12 @@ export const privateKeyFromJwk = async (privateKeyJwk: any)=>{
 }
 
 export const generate = async (alg: DEFAULT_ALG) => {
+  if (alg !== default_alg){
+    throw new Error('Only supported algorithm is: ' + default_alg)
+  }
   const { privateKey } = await generateKeyPair('ECDH-ES+A256KW', { crv: 'P-256', extractable: true })
   const privateKeyJwk = await exportJWK(privateKey);
   privateKeyJwk.kid = await calculateJwkThumbprintUri(privateKeyJwk)
-  privateKeyJwk.alg = default_alg;
+  privateKeyJwk.alg = alg;
   return formatJWK(privateKeyJwk)
 }
