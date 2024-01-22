@@ -15,6 +15,8 @@
 ## Develop
 
 ```bash
+nvm use 18
+# Now using node v18.17.0 (npm v9.6.7)
 npm i
 npm t
 ```
