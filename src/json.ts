@@ -10,24 +10,24 @@ const defaultSuite = new CipherSuite({
   aead: AeadId.Aes128Gcm,
 });
 
-const encryptContent = async (plaintext: Uint8Array, initializationVector:Uint8Array, contentEncryptionKey: Uint8Array) => {
+const encryptContent = async (plaintext: Uint8Array, initializationVector:Uint8Array, additionalData: Uint8Array, contentEncryptionKey: Uint8Array) => {
   const key = await crypto.subtle.importKey('raw', contentEncryptionKey, {
     name: "AES-GCM",
   }, true, ["encrypt", "decrypt"])
   const encrypted_content = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: initializationVector },
+    { name: "AES-GCM", iv: initializationVector, additionalData },
     key,
     plaintext,
   );
   return new Uint8Array(encrypted_content)
 }
 
-const decryptContent = async (ciphertext: Uint8Array, initializationVector:Uint8Array, contentEncryptionKey: Uint8Array) => {
+const decryptContent = async (ciphertext: Uint8Array, initializationVector:Uint8Array, additionalData: Uint8Array, contentEncryptionKey: Uint8Array) => {
   const key = await crypto.subtle.importKey('raw', contentEncryptionKey, {
     name: "AES-GCM",
   }, true, ["encrypt", "decrypt"])
   const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: initializationVector },
+    { name: "AES-GCM", iv: initializationVector, additionalData },
     key,
     ciphertext,
   );
@@ -50,7 +50,8 @@ export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any): Promise
   const encapsulatedKey = base64url.encode(new Uint8Array(sender.enc))
   const contentEncryptionKey = crypto.randomBytes(16) // possibly wrong
   const initializationVector = crypto.getRandomValues(new Uint8Array(12)); // possibly wrong
-  const encrypted_key = base64url.encode(new Uint8Array(await sender.seal(contentEncryptionKey, new TextEncoder().encode(protectedHeader))));
+  const additionalData = new TextEncoder().encode(protectedHeader)
+  const encrypted_key = base64url.encode(new Uint8Array(await sender.seal(contentEncryptionKey, additionalData)));
   // https://datatracker.ietf.org/doc/html/rfc7516#section-3.2
   const unprotected = {
     recipients: [
@@ -61,7 +62,7 @@ export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any): Promise
       }
     ]
   }
-  const ciphertext = base64url.encode(await encryptContent(plaintext, initializationVector, contentEncryptionKey))
+  const ciphertext = base64url.encode(await encryptContent(plaintext, initializationVector, additionalData, contentEncryptionKey))
   return {
     protected: protectedHeader,
     unprotected,
@@ -75,12 +76,16 @@ export const decrypt = async (json: any, privateKeyJwk: any): Promise<any> => {
     throw new Error('Public key is not for: ' + default_alg)
   }
   const { protected: protectedHeader, unprotected, iv, ciphertext} = json;
+  const ct = base64url.decode(ciphertext)
+  const additionalData = new TextEncoder().encode(protectedHeader)
+  const initializationVector = base64url.decode(iv);
   const {recipients: [{ encapsulated_key, encrypted_key }]} = unprotected
   const recipient = await defaultSuite.createRecipientContext({
     recipientKey: await privateKeyFromJwk(privateKeyJwk),
     enc: base64url.decode(encapsulated_key)
   })
-  const decryptedContentEncryptionKey = await recipient.open(base64url.decode(encrypted_key), new TextEncoder().encode(protectedHeader))
-  const plaintext = await decryptContent(base64url.decode(ciphertext), base64url.decode(iv), new Uint8Array(decryptedContentEncryptionKey))
+  const decryptedContentEncryptionKey = await recipient.open(base64url.decode(encrypted_key), additionalData)
+  const contentEncryptionKey = new Uint8Array(decryptedContentEncryptionKey)
+  const plaintext = await decryptContent(ct, initializationVector, additionalData, contentEncryptionKey)
   return new Uint8Array(plaintext)
 }

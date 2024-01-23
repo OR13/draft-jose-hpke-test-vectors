@@ -63,14 +63,14 @@ it('encrypt / decrypt', async () => {
   //   "unprotected": {
   //     "recipients": [
   //       {
-  //         "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:mkyymiz-41bn2xNKdui5eDJ9dIVJhJk5FWqU3Ar3ZSo",
-  //         "encapsulated_key": "BKScRMMcR_keKyLI6MD-PiVgj31Y5pU1NETRIIXn_6xRBuYmB3A1plI73KvhUBciggpupz99u2Xd8c2Ba_4A3tk",
-  //         "encrypted_key": "aGUXW752It4SPyTBHvAFOD-p2bn9H__6Z1gdzxoFUTA"
+  //         "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:6t9Wc2xlUkpk__8PCh1rw6l4y_TGkMMDr0G8MHz-_Go",
+  //         "encapsulated_key": "BEF-wTOaVPl2Txtq5pAz0HKJIMvU81mo5fw6TSvvB4X_ztF_StJj_M5TjEND-UovepiN9R4SNVTCCsagGtvDcf4",
+  //         "encrypted_key": "l9glJQCkjjHCANciamXRxPxiGO7hM7nuU4wIC-dhojA"
   //       }
   //     ]
   //   },
-  //   "iv": "27oAybln9XY8_jlO",
-  //   "ciphertext": "cNOYxd9u0bQA-iu6P9ngRToMOdvkuUVdoX4eFsUwVVvUDWuHRCxiuFGMP3a3z1EStSR6XwWKD_llC3mTLFfs52L9gAsNQN6uInzAiz5GYMoiRw"
+  //   "iv": "chl5-N9n-MDlLP8W",
+  //   "ciphertext": "kK1dSmkmhJgKBpVdrKOKyz5oUQd6km6_8PagQ_WfpN0lRzbmgBCr6mIrOXojVwVIKRTqNzvuTcFNrzxXtDbzra42DMQ_aTUX8xSc87V-7fHMzw"
   // }
   const recovered = await hpke.json.decrypt(ciphertext, privateKeyJwk)
   expect(new TextDecoder().decode(recovered)).toBe(message);
