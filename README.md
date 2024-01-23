@@ -59,17 +59,18 @@ it('encrypt / decrypt', async () => {
   const plaintext = new TextEncoder().encode(message);
   const ciphertext = await hpke.json.encrypt(plaintext, publicKeyJwk)
   // {
+  //   "protected": "eyJhbGciOiJIUEtFLUJhc2UtUDI1Ni1TSEEyNTYtQUVTMTI4R0NNIiwiZW5jIjoiQUVTMTI4R0NNIn0",
   //   "unprotected": {
   //     "recipients": [
   //       {
-  //         "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:5QPavpXFqMyRfGw6uocROgobSyjyrhPdo5SllaZ-Nvo",
-  //         "encapsulated_key": "BCVMwqZyG2dV0ghOnvLUjbRsZH9rOa-qYAfimsOs_Bk4jUSuSIsqz-u66zNEw0papvR8SEn3oPkV7qDb2KxQTJ4",
-  //         "encrypted_key": "dViGsJMkfIDvdqbtfHx3l2oaQ-6ONU890oPyOwmTOOQ"
+  //         "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:mkyymiz-41bn2xNKdui5eDJ9dIVJhJk5FWqU3Ar3ZSo",
+  //         "encapsulated_key": "BKScRMMcR_keKyLI6MD-PiVgj31Y5pU1NETRIIXn_6xRBuYmB3A1plI73KvhUBciggpupz99u2Xd8c2Ba_4A3tk",
+  //         "encrypted_key": "aGUXW752It4SPyTBHvAFOD-p2bn9H__6Z1gdzxoFUTA"
   //       }
   //     ]
   //   },
-  //   "iv": "QT9drgDCaosnyQei",
-  //   "ciphertext": "6nQLs8bXUh0vHjSk_q4-eu4XJVXdx_AUZeQpDpnnbPguVjS1aYQjPfG9qIZ1zKm9k0Fh7eL5lgyzbyA8OgmPGVa8EooEl1H9bvmnib6jzP9H4A"
+  //   "iv": "27oAybln9XY8_jlO",
+  //   "ciphertext": "cNOYxd9u0bQA-iu6P9ngRToMOdvkuUVdoX4eFsUwVVvUDWuHRCxiuFGMP3a3z1EStSR6XwWKD_llC3mTLFfs52L9gAsNQN6uInzAiz5GYMoiRw"
   // }
   const recovered = await hpke.json.decrypt(ciphertext, privateKeyJwk)
   expect(new TextDecoder().decode(recovered)).toBe(message);
