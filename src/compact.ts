@@ -1,19 +1,15 @@
 import { base64url } from "jose";
-import { AeadId, CipherSuite, KdfId, KemId } from "hpke-js";
 
-import { publicKeyFromJwk, default_alg, privateKeyFromJwk } from "./keys";
 
-const defaultSuite = new CipherSuite({
-  kem: KemId.DhkemP256HkdfSha256,
-  kdf: KdfId.HkdfSha256,
-  aead: AeadId.Aes128Gcm,
-});
+import { publicKeyFromJwk, suites, isKeyAlgorithmSupported, privateKeyFromJwk, JOSE_HPKE_ALG } from "./keys";
+
 
 export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any): Promise<string> => {
-  if (publicKeyJwk.alg !== default_alg){
-    throw new Error('Public key is not for: ' + default_alg)
+  if ( ! isKeyAlgorithmSupported(publicKeyJwk)){
+    throw new Error('Public key algorithm is not supported')
   }
-  const sender = await defaultSuite.createSenderContext({
+  const suite = suites[publicKeyJwk.alg as JOSE_HPKE_ALG]
+  const sender = await suite.createSenderContext({
     recipientPublicKey: await publicKeyFromJwk(publicKeyJwk),
   });
   const protectedHeader = base64url.encode(JSON.stringify({ alg: publicKeyJwk.alg }))
@@ -25,12 +21,13 @@ export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any): Promise
 }
 
 export const decrypt = async (compact: string, privateKeyJwk: any): Promise<Uint8Array> => {
-  if (privateKeyJwk.alg !== default_alg){
-    throw new Error('Public key is not for: ' + default_alg)
+  if ( ! isKeyAlgorithmSupported(privateKeyJwk)){
+    throw new Error('Public key algorithm is not supported')
   }
+  const suite = suites[privateKeyJwk.alg as JOSE_HPKE_ALG]
   const [protectedHeader, encapsulatedKey, _blankIv, ciphertext, _blankTag] = compact.split('.');
-  const recipient = await defaultSuite.createRecipientContext({
-    recipientKey: await privateKeyFromJwk(privateKeyJwk), // rkp (CryptoKeyPair) is also acceptable.
+  const recipient = await suite.createRecipientContext({
+    recipientKey: await privateKeyFromJwk(privateKeyJwk),
     enc: base64url.decode(encapsulatedKey)
   })
   const plaintext = await recipient.open(base64url.decode(ciphertext), new TextEncoder().encode(protectedHeader))
