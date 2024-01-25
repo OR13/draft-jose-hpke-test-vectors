@@ -19,9 +19,13 @@ export type JWKS = {
 }
 
 export type HPKERecipient = {
-  kid?: string
-  encapsulated_key: string,
   encrypted_key: string
+  header: {
+    kid?: string
+    alg?: string
+    epk?: JWK
+    encapsulated_key: string,
+  }
 }
 
 
@@ -43,11 +47,11 @@ export const isKeyAlgorithmSupported = (recipient: JWK) => {
   return supported_alg.includes(`${recipient.alg}`)
 }
 
-const formatJWK = (jwk: any) => {
+export const formatJWK = (jwk: any) => {
   const { kid, alg, kty, crv, x, y, d } = jwk
-  return {
+  return JSON.parse(JSON.stringify({
     kid, alg, kty, crv, x, y, d
-  }
+  }))
 }
 
 export const publicFromPrivate = (privateKeyJwk: any) => { 

@@ -53,27 +53,80 @@ it('encrypt / decrypt', async () => {
 import * as hpke from '../src'
 
 it('encrypt / decrypt', async () => {
-  const privateKeyJwk = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
-  const publicKeyJwk = await hpke.keys.publicFromPrivate(privateKeyJwk)
-  const message = `It’s a 💀 dangerous business 💀, Frodo, going out your door.`
-  const plaintext = new TextEncoder().encode(message);
-  const ciphertext = await hpke.json.encrypt(plaintext, publicKeyJwk)
+  // recipient 1
+  const privateKey1 = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
+  const publicKey1 = await hpke.keys.publicFromPrivate(privateKey1)
+
+  // recipient 2
+  const privateKey2 = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
+  privateKey2.alg = 'ECDH-ES+A128KW' // overwrite algorithm
+  const publicKey2 = await hpke.keys.publicFromPrivate(privateKey2)
+
+  const resolvePrivateKey = (kid: string): any =>{
+    if (kid === publicKey1.kid){
+      return privateKey1
+    }
+    if (kid === publicKey2.kid){
+      return privateKey2
+    }
+    throw new Error('Unknown kid')
+  }
+
+  // recipients as a JWKS
+  const recipientPublicKeys = {
+    "keys" : [
+      publicKey1,
+      publicKey2
+    ]
+  }
+
+  const plaintext = new TextEncoder().encode(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
+  const aad = new TextEncoder().encode('💀 aad')
+  const contentEncryptionAlgorithm = 'A128GCM'
+
+  const ciphertext = await hpke.json.encrypt({
+    protectedHeader: { enc: contentEncryptionAlgorithm },
+    plaintext,
+    additionalAuthenticatedData: aad,
+    recipients: recipientPublicKeys
+  });
   // {
-  //   "protected": "eyJhbGciOiJIUEtFLUJhc2UtUDI1Ni1TSEEyNTYtQUVTMTI4R0NNIiwiZW5jIjoiQUVTMTI4R0NNIn0",
-  //   "unprotected": {
+  //     "protected": "eyJlbmMiOiJBMTI4R0NNIn0",
+  //     "ciphertext": "F0xDJfbjd3sjLUEv2Q3dArzUSITUw9dTiqIpIOWhzS-akIq2_rw68QdGSurWRhOR_I2sXZ0Xr9IP5yjjpJztD_skrvkpjlzuxZ2-6JUkw4Xnkg",
+  //     "iv": "ZQ-VkP5H9iQtuUyj",
+  //     "aad": "8J-SgCBhYWQ",
   //     "recipients": [
   //       {
-  //         "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:6t9Wc2xlUkpk__8PCh1rw6l4y_TGkMMDr0G8MHz-_Go",
-  //         "encapsulated_key": "BEF-wTOaVPl2Txtq5pAz0HKJIMvU81mo5fw6TSvvB4X_ztF_StJj_M5TjEND-UovepiN9R4SNVTCCsagGtvDcf4",
-  //         "encrypted_key": "l9glJQCkjjHCANciamXRxPxiGO7hM7nuU4wIC-dhojA"
+  //         "encrypted_key": "AV-gprT2_-G0XNnN_N9b9iSShXE9fQ0SpV6aAX-JxFnYNc7SU0BfTHl5TMNPaQBa",
+  //         "header": {
+  //           "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:8uKV5Zqa7Y9UPMIzixTtAy8sOp7oHjYndUxQWyIJpxM",
+  //           "alg": "HPKE-Base-P256-SHA256-AES128GCM",
+  //           "encapsulated_key": "BIZ4PEqGG9GSMSLPgT9o3gHkaIMWtLNauTuwMXXp-_cFSnH-24IUoJzISK3thEcosTq67KOWYK9jV9grPSpoMrw"
+  //         }
+  //       },
+  //       {
+  //         "encrypted_key": "5mVD6P9ySVkhpVEUL2Qy5Ka7Ttd49HwZjhVfoFj1JQFY2Yoa5U9pnQ",
+  //         "header": {
+  //           "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:bM_mRz5jXbHYtOXgmXuAoj5vOc62aC5s206AAKc7lI4",
+  //           "alg": "ECDH-ES+A128KW",
+  //           "epk": {
+  //             "kty": "EC",
+  //             "crv": "P-256",
+  //             "x": "A6BhREIaSalw6rdFjXyezWXkKbamSdD5qOR6NZMJI-c",
+  //             "y": "pPZ41NOAuFYuVDNVprSkQUs__L7YLMbnZws6FLXjB4U"
+  //           }
+  //         }
   //       }
   //     ]
-  //   },
-  //   "iv": "chl5-N9n-MDlLP8W",
-  //   "ciphertext": "kK1dSmkmhJgKBpVdrKOKyz5oUQd6km6_8PagQ_WfpN0lRzbmgBCr6mIrOXojVwVIKRTqNzvuTcFNrzxXtDbzra42DMQ_aTUX8xSc87V-7fHMzw"
-  // }
-  const recovered = await hpke.json.decrypt(ciphertext, privateKeyJwk)
-  expect(new TextDecoder().decode(recovered)).toBe(message);
+  //   }
+  for (const recipient of recipientPublicKeys.keys){
+    const privateKey = resolvePrivateKey(recipient.kid)
+    // simulate having only one of the recipient private keys
+    const recipientPrivateKeys =  { "keys": [ privateKey ] }
+    const decryption = await hpke.json.decrypt({ jwe: ciphertext, privateKeys: recipientPrivateKeys})
+    expect(new TextDecoder().decode(decryption.plaintext)).toBe(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
+    expect(new TextDecoder().decode(decryption.aad)).toBe('💀 aad');
+  }
 })
 ```
 

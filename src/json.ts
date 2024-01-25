@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { base64url } from "jose";
 
-import { publicKeyFromJwk, privateKeyFromJwk, HPKERecipient, isKeyAlgorithmSupported, suites, JOSE_HPKE_ALG, JWKS } from "./keys";
+import { publicKeyFromJwk, privateKeyFromJwk, HPKERecipient, isKeyAlgorithmSupported, suites, JOSE_HPKE_ALG, JWKS, formatJWK } from "./keys";
 
 import * as ContentEncryption from './ContentEncryption'
 
@@ -14,6 +14,13 @@ export type RequestGeneralEncrypt = {
   plaintext: Uint8Array
   additionalAuthenticatedData?: Uint8Array
   recipients: JWKS
+}
+
+const sortJsonSerialization = (jwe: any)=> {
+  const { protected: protectedHeader, ciphertext, iv, aad, recipients} = jwe
+  return JSON.parse(JSON.stringify({
+    protected: protectedHeader, ciphertext, iv, aad, recipients
+  }))
 }
 
 export const encrypt = async (
@@ -73,9 +80,12 @@ export const encrypt = async (
 
       unprotectedHeader.recipients.push(
         {
-          kid: recipient.kid,
-          encapsulated_key: encapsulatedKey,
-          encrypted_key: encrypted_key
+          encrypted_key: encrypted_key,
+          header: {
+            kid: recipient.kid,
+            alg: recipient.alg,
+            encapsulated_key: encapsulatedKey,
+          }
         }
       )
     } else if (recipient.alg === 'ECDH-ES+A128KW') {
@@ -87,8 +97,9 @@ export const encrypt = async (
       unprotectedHeader.recipients.push({
         encrypted_key: base64url.encode(encrypted_key),
         header: {
+          kid: recipient.kid,
           alg: recipient.alg,
-          epk: epk
+          epk: formatJWK(epk)
         }
       } as any)
 
@@ -104,7 +115,7 @@ export const encrypt = async (
   }
 
   jwe.protected = protectedHeader
-  return jwe;
+  return sortJsonSerialization(jwe);
 }
 
 export type RequestGeneralDecrypt = {
@@ -136,7 +147,7 @@ export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
   let matchingPrivateKey = undefined
   for (const privateKey of req.privateKeys.keys) {
     const recipient = recipients.find((r: HPKERecipient) => {
-      return r.kid === privateKey.kid
+      return r.header.kid === privateKey.kid
     })
     if (recipient) {
       // we have a private key for this recipient
@@ -157,7 +168,8 @@ export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
     const suite = suites[matchingPrivateKey.alg as JOSE_HPKE_ALG]
 
     // selected the encapsulated_key for the recipient
-    const { encapsulated_key, encrypted_key } = matchingRecipient;
+    const { encrypted_key, header } = matchingRecipient;
+    const { encapsulated_key } = header
 
     // create the HPKE recipient
     const recipient = await suite.createRecipientContext({

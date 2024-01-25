@@ -9,9 +9,8 @@ it('encrypt / decrypt', async () => {
   const publicKey1 = await hpke.keys.publicFromPrivate(privateKey1)
 
   // recipient 2
-  const key2 = await jose.generateKeyPair('ECDH-ES+A128KW', { crv: 'P-256', extractable: true })
-  const privateKey2 = await jose.exportJWK(key2.privateKey);
-  privateKey2.alg = 'ECDH-ES+A128KW'
+  const privateKey2 = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
+  privateKey2.alg = 'ECDH-ES+A128KW' // overwrite algorithm
   const publicKey2 = await hpke.keys.publicFromPrivate(privateKey2)
 
   const resolvePrivateKey = (kid: string): any =>{
@@ -43,8 +42,6 @@ it('encrypt / decrypt', async () => {
     recipients: recipientPublicKeys
   });
 
-  // console.log(JSON.stringify(ciphertext, null, 2))
-  
   for (const recipient of recipientPublicKeys.keys){
     const privateKey = resolvePrivateKey(recipient.kid)
     // simulate having only one of the recipient private keys
