@@ -62,7 +62,7 @@ it('encrypt / decrypt', async () => {
   privateKey2.alg = 'ECDH-ES+A128KW' // overwrite algorithm
   const publicKey2 = await hpke.keys.publicFromPrivate(privateKey2)
 
-  const resolvePrivateKey = (kid: string): any =>{
+  const resolvePrivateKey = (kid: string): any => {
     if (kid === publicKey1.kid){
       return privateKey1
     }
@@ -79,15 +79,11 @@ it('encrypt / decrypt', async () => {
       publicKey2
     ]
   }
-
-  const plaintext = new TextEncoder().encode(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
-  const aad = new TextEncoder().encode('💀 aad')
-  const contentEncryptionAlgorithm = 'A128GCM'
-
+  
   const ciphertext = await hpke.json.encrypt({
-    protectedHeader: { enc: contentEncryptionAlgorithm },
-    plaintext,
-    additionalAuthenticatedData: aad,
+    protectedHeader: { enc: 'A128GCM' },
+    plaintext: new TextEncoder().encode(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`),
+    additionalAuthenticatedData: new TextEncoder().encode('💀 aad'),
     recipients: recipientPublicKeys
   });
   // {
