@@ -1,8 +1,10 @@
 
 import * as jose from 'jose'
 
+import * as mixed from '../src/mixedKeyAgreement'
+
 it('jwe', async () => {
-  const key1 = await jose.generateKeyPair('ECDH-ES+A256KW', { crv: 'P-256', extractable: true })
+  const key1 = await jose.generateKeyPair('ECDH-ES+A128KW', { crv: 'P-256', extractable: true })
   const key2 = await jose.generateKeyPair('RSA-OAEP-384')
   const message = new TextEncoder().encode('✨ It’s a dangerous business, Frodo, going out your door. ✨')
   const aad = new TextEncoder().encode('💀 aad')
@@ -10,9 +12,9 @@ it('jwe', async () => {
     message
   )
     .setAdditionalAuthenticatedData(aad)
-    .setProtectedHeader({ enc: 'A256GCM' })
+    .setProtectedHeader({ enc: 'A128GCM' })
     .addRecipient(key1.publicKey)
-    .setUnprotectedHeader({ alg: 'ECDH-ES+A256KW' })
+    .setUnprotectedHeader({ alg: 'ECDH-ES+A128KW' })
     .addRecipient(key2.publicKey)
     .setUnprotectedHeader({ alg: 'RSA-OAEP-384' })
     .encrypt()
@@ -50,6 +52,15 @@ it('jwe', async () => {
   expect(new TextDecoder().decode(additionalAuthenticatedData)).toBe('💀 aad')
   expect(new TextDecoder().decode(plaintext)).toBe('✨ It’s a dangerous business, Frodo, going out your door. ✨')
   expect(protectedHeader).toEqual({
-    "enc": "A256GCM"
+    "enc": "A128GCM"
   })
+
+  // some extra tests here to confirm key wrapping basics
+  const [r0] = jwe.recipients as any;
+  const sharedSecret = await mixed.deriveKey( r0.header.epk, await jose.exportJWK(key1.privateKey))
+  const encryptedKey = jose.base64url.decode(r0.encrypted_key)
+  const cek = mixed.unwrap('A128KW', sharedSecret, encryptedKey)
+  const kwkc = mixed.wrap('A128KW', sharedSecret, cek)
+  expect(encryptedKey).toEqual(kwkc)
+
 })

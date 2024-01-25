@@ -56,9 +56,8 @@ export function lengthAndInput(input: Uint8Array) {
   return concat(uint32be(input.length), input)
 }
 
-export const deriveKeyWrappingKey = async (publicKeyJwk: any, privateKeyJwk: any) => {
+export const deriveKey = async (publicKeyJwk: any, privateKeyJwk: any) => {
   const length = Math.ceil(parseInt('P-256'.substr(-3), 10) / 8) << 3
-  console.log(length)
   const sharedSecret = new Uint8Array(
     await crypto.subtle.deriveBits(
       {
@@ -69,7 +68,7 @@ export const deriveKeyWrappingKey = async (publicKeyJwk: any, privateKeyJwk: any
       length,
     ),
   )
-  const algorithm = 'ECDH-ES'
+  const algorithm = 'ECDH-ES+A128KW'
   const keyLength = 128;
   const apu = new Uint8Array(0)
   const apv = new Uint8Array(0)
