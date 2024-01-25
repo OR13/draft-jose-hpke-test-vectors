@@ -1,106 +1,139 @@
 import crypto from 'crypto';
 import { base64url } from "jose";
-import { AeadId, CipherSuite, KdfId, KemId } from "hpke-js";
 
-import { publicKeyFromJwk, default_alg, privateKeyFromJwk } from "./keys";
+import { publicKeyFromJwk, privateKeyFromJwk, HPKERecipient, isKeyAlgorithmSupported, suites, JOSE_HPKE_ALG, JWK, JWKS } from "./keys";
 
-const defaultSuite = new CipherSuite({
-  kem: KemId.DhkemP256HkdfSha256,
-  kdf: KdfId.HkdfSha256,
-  aead: AeadId.Aes128Gcm,
-});
+import * as ContentEncryption from './ContentEncryption'
 
-const encryptContent = async (enc: string, plaintext: Uint8Array, initializationVector:Uint8Array, additionalData: Uint8Array | undefined, contentEncryptionKey: Uint8Array) => {
-  if (enc !== 'AES128GCM'){
-    throw new Error('encryption algorithm not supported.')
-  }
-  const key = await crypto.subtle.importKey('raw', contentEncryptionKey, {
-    name: "AES-GCM",
-  }, true, ["encrypt", "decrypt"])
-  const encrypted_content = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: initializationVector, additionalData },
-    key,
-    plaintext,
-  );
-  return new Uint8Array(encrypted_content)
-}
+export const encrypt = async (
+  enc: string,
+  plaintext: Uint8Array,
+  recipients: JWKS
+): Promise<any> => {
 
-const decryptContent = async (enc: string, ciphertext: Uint8Array, initializationVector:Uint8Array, additionalData: Uint8Array| undefined, contentEncryptionKey: Uint8Array) => {
-  if (enc !== 'AES128GCM'){
-    throw new Error('encryption algorithm not supported.')
-  }
-  const key = await crypto.subtle.importKey('raw', contentEncryptionKey, {
-    name: "AES-GCM",
-  }, true, ["encrypt", "decrypt"])
-  const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: initializationVector, additionalData },
-    key,
-    ciphertext,
-  );
-  return new Uint8Array(plaintext)
-}
+  // prepare the encrypted content for all recipients
 
-export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any): Promise<any> => {
-  if (publicKeyJwk.alg !== default_alg){
-    throw new Error('Public key is not for: ' + default_alg)
-  }
-  const sender = await defaultSuite.createSenderContext({
-    recipientPublicKey: await publicKeyFromJwk(publicKeyJwk),
-  });
-  const protectedHeader = base64url.encode(JSON.stringify({ alg: publicKeyJwk.alg  }))
-  // {
-  //   "alg": "HPKE-Base-P256-SHA256-AES128GCM"
-  // }
-  const encapsulatedKey = base64url.encode(new Uint8Array(sender.enc))
-  const contentEncryptionKey = crypto.randomBytes(16) // possibly wrong
-  // at this point we have a content encryption key generated and we know it is for use with "AES128GCM"
-  // we will include the protectected header as aad in seal, to improve the probability that consumers
-  // use the correct aead that the sender intended the receive to use to decrypt.
+  // generate a content encryption key for a content encryption algorithm
+  const contentEncryptionKey = ContentEncryption.generateContentEncryptionKey(enc);
+
+  // generate an initialization vector for use with the content encryption key
   const initializationVector = crypto.getRandomValues(new Uint8Array(12)); // possibly wrong
-  const additionalData = new TextEncoder().encode(protectedHeader)
-  const encrypted_key = base64url.encode(new Uint8Array(await sender.seal(contentEncryptionKey, additionalData)));
-  // seal is applied to a key, with a known encryption algorithm
-  // the binding is preserved by the aad on seal.
+  const iv = base64url.encode(initializationVector)
+
+  // create the protected header
+  // top level protected header only has "enc"
+  const protectedHeader = base64url.encode(JSON.stringify({ enc }))
+
+  // encrypt the plaintext with the content encryption algorithm
+  const contentEncryptionAad = undefined
+  const ciphertext = base64url.encode(await ContentEncryption.encryptContent(enc, plaintext, initializationVector, contentEncryptionAad, contentEncryptionKey))
+
+  // for each recipient public key, encrypt the content encryption key to the recipient public key
+  // and add the result to the unprotected header recipients property
+  const unprotectedHeader = {
+    recipients: [] as HPKERecipient[]
+  }
+
+  for (const recipient of recipients.keys) {
+    if (!isKeyAlgorithmSupported(recipient)) {
+      throw new Error('Public key algorithm not supported.')
+    }
+    const suite = suites[recipient.alg as JOSE_HPKE_ALG]
+    // prepare the hpke sender
+    const sender = await suite.createSenderContext({
+      recipientPublicKey: await publicKeyFromJwk(recipient),
+    });
+
+    // encode the encapsulated key for the recipient
+    const encapsulatedKey = base64url.encode(new Uint8Array(sender.enc))
+
+    // prepare the add for the seal operation for the recipient
+    // ensure the recipient must process the protected header
+    // and understand the chosen "encyption algorithm"
+    const hpkeSealAad = new TextEncoder().encode(protectedHeader)
+
+    // encrypt the content encryption key to the recipient, 
+    // while binding the content encryption algorithm to the protected header
+    const encrypted_key = base64url.encode(new Uint8Array(await sender.seal(contentEncryptionKey, hpkeSealAad)));
+
+    unprotectedHeader.recipients.push(
+      {
+        kid: recipient.kid,
+        encapsulated_key: encapsulatedKey,
+        encrypted_key: encrypted_key
+      }
+    )
+  }
+
   // https://datatracker.ietf.org/doc/html/rfc7516#section-3.2
-  const contentEncryptionAad = undefined;
-  const ciphertext = base64url.encode(await encryptContent("AES128GCM", plaintext, initializationVector, contentEncryptionAad, contentEncryptionKey))
   return {
     protected: protectedHeader,
-    unprotected: {
-      recipients: [
-        {
-          kid: publicKeyJwk.kid,
-          encapsulated_key: encapsulatedKey,
-          encrypted_key: encrypted_key
-        }
-      ]
-    },
-    iv: base64url.encode(initializationVector),
+    unprotected: unprotectedHeader,
+    iv,
     ciphertext,
   }
 }
 
-export const decrypt = async (json: any, privateKeyJwk: any): Promise<any> => {
-  if (privateKeyJwk.alg !== default_alg){
-    throw new Error('Public key is not for: ' + default_alg)
+export const decrypt = async (json: any, recipients: JWKS): Promise<any> => {
+  const { protected: protectedHeader, unprotected, iv, ciphertext } = json;
+
+  // find a recipient for which we have a private key
+  let matchingRecipient = undefined
+  let matchingPrivateKey = undefined
+  for (const privateKey of recipients.keys){
+    const recipient = unprotected.recipients.find((r: HPKERecipient)=>{
+      return r.kid === privateKey.kid
+    })
+    if (recipient){
+      // we have a private key for this recipient
+      matchingRecipient = recipient;
+      matchingPrivateKey = privateKey;
+      break
+    }
+  } 
+
+  if (!matchingRecipient || !matchingPrivateKey){
+    throw new Error('No decryption key found for the given recipients')
   }
-  const { protected: protectedHeader, unprotected, iv, ciphertext} = json;
-  const ct = base64url.decode(ciphertext)
-  const additionalData = new TextEncoder().encode(protectedHeader)
-  const initializationVector = base64url.decode(iv);
-  const {recipients: [{ encapsulated_key, encrypted_key }]} = unprotected
-  const recipient = await defaultSuite.createRecipientContext({
-    recipientKey: await privateKeyFromJwk(privateKeyJwk),
+
+  if (!isKeyAlgorithmSupported(matchingPrivateKey)){
+    throw new Error('Private key algorithm not supported.')
+  }
+  // We could check here to see if the "enc" in the protected header
+  // matches the last part of the "alg" on the private key.
+  
+
+  const suite = suites[matchingPrivateKey.alg as JOSE_HPKE_ALG]
+  
+  // TODO: mixed recipients support goes here... (ECDH-ES and HPKE)
+
+  // selected the encapsulated_key for the recipient
+  const { encapsulated_key, encrypted_key } = matchingRecipient;
+
+  // create the HPKE recipient
+   const recipient = await suite.createRecipientContext({
+    recipientKey: await privateKeyFromJwk(matchingPrivateKey),
     enc: base64url.decode(encapsulated_key)
   })
+
+  // compute the additional data from the protected header
+  // this will be used to protect against 
+  // a cross mode attack on the aead
+  const additionalData = new TextEncoder().encode(protectedHeader)
+
+  // open the content encryption key for the given content encryption algorithm
+  // which is described in the protected header
   const decryptedContentEncryptionKey = await recipient.open(base64url.decode(encrypted_key), additionalData)
-  // open takes the protected header as aad
-  // open fails if the protected header algorithm is changed
-  // we can then use the enc value from "alg" safely.
-  const header = JSON.parse(new TextDecoder().decode(base64url.decode(protectedHeader)));
-  const enc = header.alg.split('-').pop(); // expect AES128GCM
-  const contentEncryptionAad = undefined;
+
+  // determine the content encryption algorithm
+  // now that we know we have a key that supports it
+  const { enc } = JSON.parse(new TextDecoder().decode(base64url.decode(protectedHeader)));
+
+  // decrypt the ciphertext
+  const ct = base64url.decode(ciphertext)
+  const initializationVector = base64url.decode(iv);
   const contentEncryptionKey = new Uint8Array(decryptedContentEncryptionKey)
-  const plaintext = await decryptContent(enc, ct, initializationVector, contentEncryptionAad, contentEncryptionKey)
+  const contentEncryptionAad = undefined;
+  const plaintext = await ContentEncryption.decryptContent(enc, ct, initializationVector, contentEncryptionAad, contentEncryptionKey)
   return new Uint8Array(plaintext)
 }
