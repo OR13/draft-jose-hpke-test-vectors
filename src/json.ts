@@ -25,14 +25,21 @@ export const encrypt = async (
   // generate an initialization vector for use with the content encryption key
   const initializationVector = crypto.getRandomValues(new Uint8Array(12)); // possibly wrong
   const iv = base64url.encode(initializationVector)
-  jwe.iv = iv
+  
   // create the protected header
   // top level protected header only has "enc"
   const protectedHeader = base64url.encode(JSON.stringify(req.protectedHeader))
 
   // encrypt the plaintext with the content encryption algorithm
-  const ciphertext = base64url.encode(await ContentEncryption.encryptContent(req.protectedHeader.enc, req.plaintext, initializationVector, req.additionalAuthenticatedData, contentEncryptionKey))
+  const ciphertext = base64url.encode(await ContentEncryption.encryptContent(
+    req.protectedHeader.enc, 
+    req.plaintext, 
+    initializationVector, 
+    req.additionalAuthenticatedData, 
+    contentEncryptionKey
+    ))
   jwe.ciphertext = ciphertext;
+  jwe.iv = iv;
 
   // for each recipient public key, encrypt the content encryption key to the recipient public key
   // and add the result to the unprotected header recipients property
