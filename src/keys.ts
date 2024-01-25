@@ -87,7 +87,7 @@ export const privateKeyFromJwk = async (privateKeyJwk: any)=>{
       namedCurve: privateKeyJwk.crv,
     },
     true,
-    ['deriveBits'],
+    ['deriveBits', 'deriveKey'],
   )
   return privateKey
 }
