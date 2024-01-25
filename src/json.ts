@@ -14,7 +14,7 @@ export const encrypt = async (
   // prepare the encrypted content for all recipients
 
   // generate a content encryption key for a content encryption algorithm
-  const contentEncryptionKey = ContentEncryption.generateContentEncryptionKey(enc);
+  const contentEncryptionKey = await ContentEncryption.generateContentEncryptionKey(enc);
 
   // generate an initialization vector for use with the content encryption key
   const initializationVector = crypto.getRandomValues(new Uint8Array(12)); // possibly wrong

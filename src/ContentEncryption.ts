@@ -1,12 +1,35 @@
 
 import crypto from 'crypto'
 
-export const generateContentEncryptionKey = (enc: string) => {
+import { AeadId, CipherSuite, KdfId, KemId } from "hpke-js";
+
+const suite = new CipherSuite({
+  kem: KemId.DhkemP256HkdfSha256,
+  kdf: KdfId.HkdfSha256,
+  aead: AeadId.Aes128Gcm,
+});
+const hkdfSha256 = suite.kdf;
+
+
+export const generateContentEncryptionKey = async (enc: string) => {
+
+  let contentEncryptionKey = undefined
+
   if (enc == 'A128GCM') {
-    const contentEncryptionKey = crypto.randomBytes(16) // possibly wrong
-    return contentEncryptionKey;
+    contentEncryptionKey = crypto.randomBytes(16) // possibly wrong
   }
-  throw new Error('Unsupported content encryption algorithm')
+
+  if (contentEncryptionKey) {
+    // https://datatracker.ietf.org/doc/draft-housley-lamps-cms-cek-hkdf-sha256/
+    // probably not the right salt for JOSE... 
+    // but note that because ikm is generated randomly above...
+    // this does nothing useful here...
+    const salt = new TextEncoder().encode("The Cryptographic Message Syntax")
+    const ikm = new Uint8Array(contentEncryptionKey)
+    return new Uint8Array(await hkdfSha256.extract(salt, ikm))
+  } else {
+    throw new Error('Unsupported content encryption algorithm')
+  }
 }
 
 export const encryptContent = async (
