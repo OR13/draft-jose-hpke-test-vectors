@@ -1,7 +1,7 @@
 
 import * as jose from 'jose'
 
-import * as mixed from '../src/mixedKeyAgreement'
+import * as mixed from '../src/mixed'
 
 it('jwe', async () => {
   const key1 = await jose.generateKeyPair('ECDH-ES+A128KW', { crv: 'P-256', extractable: true })

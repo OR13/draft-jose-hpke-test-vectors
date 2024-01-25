@@ -1,13 +1,11 @@
 
 import crypto from 'crypto';
 
-import * as jose from 'jose'
-
 import { publicKeyFromJwk, privateKeyFromJwk } from './keys';
+import { createHash, createSecretKey, createDecipheriv, createCipheriv } from 'node:crypto'
 
 // https://github.com/panva/jose/blob/08eff759a032585a950d79e6989dfcb373a8900e/src/lib/buffer_utils.ts#L49
-
-import { createHash, createSecretKey, createDecipheriv, createCipheriv } from 'node:crypto'
+// had to pull all this stuff out, becuase its not exposed in the module...
 
 const digest: any = (
   algorithm: 'sha256' | 'sha384' | 'sha512',
@@ -101,21 +99,4 @@ export const unwrap: any = (
   const keyObject = createSecretKey(key as any)
   const cipher = createDecipheriv(algorithm, keyObject, Buffer.alloc(8, 0xa6))
   return concat(cipher.update(encryptedKey), cipher.final())
-}
-
-export const getJweJson = async (publicKeyJwk: any, plaintext: Uint8Array, aad?: Uint8Array) => {
-  // second key here is not used
-  const key2 = await jose.generateKeyPair('RSA-OAEP-384')
-  const enc = await new jose.GeneralEncrypt(
-    plaintext
-  )
-  if (aad) {
-    enc.setAdditionalAuthenticatedData(aad);
-  }
-  return enc.setProtectedHeader({ enc: 'A128GCM' })
-    .addRecipient(await jose.importJWK(publicKeyJwk))
-    .setUnprotectedHeader({ alg: 'ECDH-ES+A128KW' })
-    .addRecipient(key2.publicKey)
-    .setUnprotectedHeader({ alg: 'RSA-OAEP-384' })
-    .encrypt()
 }
