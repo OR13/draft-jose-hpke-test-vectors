@@ -5,6 +5,10 @@ import { publicKeyFromJwk, privateKeyFromJwk, HPKERecipient, isKeyAlgorithmSuppo
 
 import * as ContentEncryption from './ContentEncryption'
 
+import * as mixed from './mixedKeyAgreement'
+
+import * as jose from 'jose'
+
 export type RequestGeneralEncrypt = {
   protectedHeader: { enc: 'A128GCM' }
   plaintext: Uint8Array
@@ -75,7 +79,19 @@ export const encrypt = async (
         }
       )
     } else if (recipient.alg === 'ECDH-ES+A128KW') {
-      throw new Error('Mixed mode not supported')
+      // throw new Error('Mixed mode not supported')
+      const ek = await jose.generateKeyPair(recipient.alg, { crv: recipient.crv, extractable: true })
+      const epk = await jose.exportJWK(ek.publicKey)
+      const sharedSecret = await mixed.deriveKey( recipient, await jose.exportJWK(ek.privateKey))
+      const encrypted_key = mixed.wrap('A128KW', sharedSecret, contentEncryptionKey)
+      unprotectedHeader.recipients.push({
+        encrypted_key: base64url.encode(encrypted_key),
+        header: {
+          alg: recipient.alg,
+          epk: epk
+        }
+      } as any)
+
     } else {
       throw new Error('Public key algorithm not supported: ' + recipient.alg)
     }
@@ -125,8 +141,6 @@ export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
 
     const suite = suites[matchingPrivateKey.alg as JOSE_HPKE_ALG]
 
-    // TODO: mixed recipients support goes here... (ECDH-ES and HPKE)
-
     // selected the encapsulated_key for the recipient
     const { encapsulated_key, encrypted_key } = matchingRecipient;
 
@@ -163,7 +177,22 @@ export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
     decryption.aad = contentEncryptionAad;
     return decryption
   } else if (matchingPrivateKey.alg === 'ECDH-ES+A128KW') {
-    throw new Error('Mixed mode not supported')
+    // throw new Error('Mixed mode not supported')
+    const sharedSecret = await mixed.deriveKey( matchingRecipient.header.epk, matchingPrivateKey)
+    const encryptedKey = jose.base64url.decode(matchingRecipient.encrypted_key)
+    const contentEncryptionKey = mixed.unwrap('A128KW', sharedSecret, encryptedKey)
+    let contentEncryptionAad = undefined;
+    if (aad) {
+      contentEncryptionAad = base64url.decode(aad)
+    }
+    const parsedProtectedHeader = JSON.parse(new TextDecoder().decode(base64url.decode(protectedHeader)));
+    const ct = base64url.decode(ciphertext)
+    const initializationVector = base64url.decode(iv);
+    const plaintext = await ContentEncryption.decryptContent(parsedProtectedHeader.enc, ct, initializationVector, contentEncryptionAad, contentEncryptionKey)
+    const decryption = { plaintext: new Uint8Array(plaintext) } as any;
+    decryption.protectedHeader = parsedProtectedHeader;
+    decryption.aad = contentEncryptionAad;
+    return decryption
   } else {
     throw new Error('Private key algorithm not supported.')
   }

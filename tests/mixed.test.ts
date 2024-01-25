@@ -3,7 +3,7 @@ import * as hpke from '../src'
 
 import * as jose from 'jose'
 
-it.skip('encrypt / decrypt', async () => {
+it('encrypt / decrypt', async () => {
   // recipient 1
   const privateKey1 = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
   const publicKey1 = await hpke.keys.publicFromPrivate(privateKey1)
@@ -44,32 +44,6 @@ it.skip('encrypt / decrypt', async () => {
   });
 
   // console.log(JSON.stringify(ciphertext, null, 2))
-  // {
-  //   "ciphertext": "fBQXw5hJITDMttWjUIHXETRvDL2_zOEWHbW1Q5ILaYawVUzisXWBA0GIsqncEIO1qAzCuAuW1MxHC3F9YIsAT51Wrp3Nrmp4f8zOMHlUJa1uJQ",
-  //   "iv": "QzbgK6-BrK5UEy9a",
-  //   "recipients": [
-  //     {
-  //       "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:bF7B4GzHR4eunXXm_W-aioPexcK2Qkg3ie7M94lIVBM",
-  //       "encapsulated_key": "BBc78D-qj88ZZoORf_p7JDnYMnIrFt_tPUgZ9vt8bHyZqCQmuWuXgeoqab15OfnYFBgh-sm6yG1sSEKNpXHEqcE",
-  //       "encrypted_key": "9Bk5jC6zRg0WKAWOfXT2y3UnIL_MPNOp38Ugt9YJ5HWUIxIM_j4YD3cIwp5td62j"
-  //     },
-  //     {
-  //       "encrypted_key": "ZCqaqeixfrtaLGOkDduhdZpsggnLi0MQ",
-  //       "header": {
-  //         "alg": "ECDH-ES+A128KW",
-  //         "epk": {
-  //           "x": "iBVW_DI6pry9e_SbZvjySVtsXJqKF3Z90BcYfC3rtDQ",
-  //           "crv": "P-256",
-  //           "kty": "EC",
-  //           "y": "yTUAljNvl5b-EC1GlyjobgFz3_6ufDa8KQaQo9QDsQw"
-  //         }
-  //       }
-  //     }
-  //   ],
-  //   "aad": "8J-SgCBhYWQ",
-  //   "protected": "eyJlbmMiOiJBMTI4R0NNIn0"
-  // }
-
   
   for (const recipient of recipientPublicKeys.keys){
     const privateKey = resolvePrivateKey(recipient.kid)

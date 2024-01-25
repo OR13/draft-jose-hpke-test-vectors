@@ -11,6 +11,7 @@ export type JWK = {
   kid?:string
   alg?: string
   kty: string
+  crv: string
 }
 
 export type JWKS = {
@@ -36,14 +37,6 @@ export const suites = {
     aead: AeadId.Aes128Gcm,
   })
 }
-
-// // HPKE-Base-P256-SHA256-AES128GCM -> A128GCM
-// const algToEnc = (alg: string) => {
-//   const aead = `${alg.split('-').pop()}`;
-//   if (aead === 'AES128GCM'){
-//     return 'A128GCM'
-//   }
-// }
 
 export const isKeyAlgorithmSupported = (recipient: JWK) => {
   const supported_alg = Object.keys(suites) as string []

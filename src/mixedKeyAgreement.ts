@@ -1,6 +1,7 @@
 
 import crypto from 'crypto';
 
+import * as jose from 'jose'
 
 import { publicKeyFromJwk, privateKeyFromJwk } from './keys';
 
@@ -90,7 +91,6 @@ export const wrap: any = (alg: string, key: unknown, cek: Uint8Array) => {
   return concat(cipher.update(cek), cipher.final())
 }
 
-
 export const unwrap: any = (
   alg: string,
   key: Uint8Array,
@@ -101,4 +101,21 @@ export const unwrap: any = (
   const keyObject = createSecretKey(key as any)
   const cipher = createDecipheriv(algorithm, keyObject, Buffer.alloc(8, 0xa6))
   return concat(cipher.update(encryptedKey), cipher.final())
+}
+
+export const getJweJson = async (publicKeyJwk: any, plaintext: Uint8Array, aad?: Uint8Array) => {
+  // second key here is not used
+  const key2 = await jose.generateKeyPair('RSA-OAEP-384')
+  const enc = await new jose.GeneralEncrypt(
+    plaintext
+  )
+  if (aad) {
+    enc.setAdditionalAuthenticatedData(aad);
+  }
+  return enc.setProtectedHeader({ enc: 'A128GCM' })
+    .addRecipient(await jose.importJWK(publicKeyJwk))
+    .setUnprotectedHeader({ alg: 'ECDH-ES+A128KW' })
+    .addRecipient(key2.publicKey)
+    .setUnprotectedHeader({ alg: 'RSA-OAEP-384' })
+    .encrypt()
 }
