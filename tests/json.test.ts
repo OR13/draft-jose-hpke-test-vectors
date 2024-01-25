@@ -39,7 +39,7 @@ it('encrypt / decrypt', async () => {
     recipients: recipientPublicKeys
   });
 
-  // console.log(JSON.stringify(ciphertext, null, 2))
+  console.log(JSON.stringify(ciphertext, null, 2))
   // {
   //   "iv": "jGA1495md8IaMrbO",
   //   "ciphertext": "L7sD6Y2RfnlElDF_la5eB...jGeNoaZZFp_F6yZ3K-uqg",
