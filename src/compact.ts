@@ -14,7 +14,8 @@ export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any): Promise
   });
   const protectedHeader = base64url.encode(JSON.stringify({ alg: publicKeyJwk.alg }))
   const encapsulatedKey = base64url.encode(new Uint8Array(sender.enc))
-  const ciphertext = base64url.encode(new Uint8Array(await sender.seal(plaintext, new TextEncoder().encode(protectedHeader))));
+  const hpkeSealAad = new TextEncoder().encode(protectedHeader)
+  const ciphertext = base64url.encode(new Uint8Array(await sender.seal(plaintext, hpkeSealAad)));
   // https://datatracker.ietf.org/doc/html/rfc7516#section-3.1
   return `${protectedHeader}.${encapsulatedKey}..${ciphertext}.`
 
@@ -30,6 +31,7 @@ export const decrypt = async (compact: string, privateKeyJwk: any): Promise<Uint
     recipientKey: await privateKeyFromJwk(privateKeyJwk),
     enc: base64url.decode(encapsulatedKey)
   })
-  const plaintext = await recipient.open(base64url.decode(ciphertext), new TextEncoder().encode(protectedHeader))
+  const hpkeOpenAad = new TextEncoder().encode(protectedHeader)
+  const plaintext = await recipient.open(base64url.decode(ciphertext), hpkeOpenAad)
   return new Uint8Array(plaintext)
 }

@@ -1,8 +1,6 @@
 
 import * as hpke from '../src'
 
-import * as jose from 'jose'
-
 it('encrypt / decrypt', async () => {
   // recipient 1
   const privateKey1 = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
