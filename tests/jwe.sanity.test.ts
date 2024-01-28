@@ -3,7 +3,7 @@ import * as jose from 'jose'
 
 import * as mixed from '../src/mixed'
 
-it('jwe', async () => {
+it('jwe json', async () => {
   const key1 = await jose.generateKeyPair('ECDH-ES+A128KW', { crv: 'P-256', extractable: true })
   const key2 = await jose.generateKeyPair('RSA-OAEP-384')
   const message = new TextEncoder().encode('✨ It’s a dangerous business, Frodo, going out your door. ✨')
@@ -35,4 +35,21 @@ it('jwe', async () => {
   const kwkc = mixed.wrap('A128KW', sharedSecret, cek)
   expect(encryptedKey).toEqual(kwkc)
 
+})
+
+it('jwe compact', async () => {
+  const key1 = await jose.generateKeyPair('ECDH-ES+A128KW', { crv: 'P-256', extractable: true })
+  const jwe = await new jose.CompactEncrypt(
+    new TextEncoder().encode('It’s a dangerous business, Frodo, going out your door.'),
+  )
+    .setProtectedHeader({ alg: 'ECDH-ES+A128KW', enc: 'A128GCM' })
+    .encrypt(key1.publicKey)
+
+  const { plaintext, protectedHeader } = await jose.compactDecrypt(jwe, key1.privateKey)
+
+  expect(protectedHeader.alg).toBe('ECDH-ES+A128KW')
+  expect(protectedHeader.enc).toBe('A128GCM')
+  // protected header also protectes the epk.
+  
+  expect(new TextDecoder().decode(plaintext)).toBe('It’s a dangerous business, Frodo, going out your door.')
 })
