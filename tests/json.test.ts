@@ -41,23 +41,32 @@ it('encrypt / decrypt', async () => {
 
   // console.log(JSON.stringify(ciphertext, null, 2))
   // {
-  //   "iv": "jGA1495md8IaMrbO",
-  //   "ciphertext": "L7sD6Y2RfnlElDF_la5eB...jGeNoaZZFp_F6yZ3K-uqg",
+  //   "protected": "eyJlbmMiOiJBMTI4R0NNIn0",
+  //   "ciphertext": "k3fVE4ArW8MLcE5WDXkloMPlTFj-eswCkpLsiH1ySe1YfxWBhhgJDPCoQeJiZAzK3aDbFPzEVUA-Wir_Q-dDqTO8",
+  //   "iv": "tHHWmjf2hlGnfGy2",
+  //   "aad": "8J-SgCBhYWQ",
+  //   "tag": "V2HpcAadnYaXoSyl3I1OHA",
   //   "recipients": [
   //     {
-  //       "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:ROv0KdmDUQBERQuiTnp5S-Ki4rgjqPtTX_w1dTfPsWg",
-  //       "encapsulated_key": "BIv2gwvAGZzp1...B36hqdTcZh41jH7LlCChU",
-  //       "encrypted_key": "CI4_LXJdHLWsvOA6SQGMSH3...uDpdrw5Fn0Po5Ho9"
+  //       "encrypted_key": "GfHHxdoVxvBUH5cI8xtzNvSU2VI3yc2CSacUCgvClkU",
+  //       "header": {
+  //         "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:ksLOGnJGcxEL4YZJALKnudgouNhA5XQkfAfXax47QEI",
+  //         "alg": "HPKE-Base-P256-SHA256-AES128GCM",
+  //         "encapsulated_key": "BLCG3FZx-QeVpQf0-01r7rGhw94rusVO2YKjLq1ydEREbwNIgKFv7xXn5Bl1SvJ2JfvLp6rnyxA4E6nQxaZTT1o"
+  //       }
   //     },
   //     {
-  //       "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:C4LqgFbEPz97P9wRoS1DyBk4FT7CxOuPNn9a8gyoxOU",
-  //       "encapsulated_key": "BK_M7wMl1NQPy_UGGxOb6...lvppxiDCnCEqPT4isU",
-  //       "encrypted_key": "MuTYjX0g1emKI481spI...maP_T9RfsZCmSDCqS5"
+  //       "encrypted_key": "0H5K0ZXpZhRpx1Jqrjb4X2Q-cDxi-nISc06QtKvZSaU",
+  //       "header": {
+  //         "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:5e_H1gwsc1QmmBSbVul2TjYirvIXFcsMxXtnVBL5KG8",
+  //         "alg": "HPKE-Base-P256-SHA256-AES128GCM",
+  //         "encapsulated_key": "BBScFHps3XGVQ9yyg5PoPkprqxjopbYQclSGV1SozTXPowOlFu9nKmXKc0SpOXY7WDiWKDm9X___kknmVEEbEmQ"
+  //       }
   //     }
-  //   ],
-  //   "aad": "8J-SgCBhYWQ",
-  //   "protected": "eyJlbmMiOiJBMTI4R0NNIn0"
+  //   ]
   // }
+
+ 
 
   for (const recipient of recipientPublicKeys.keys){
     const privateKey = resolvePrivateKey(recipient.kid)

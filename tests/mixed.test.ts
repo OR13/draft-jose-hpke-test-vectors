@@ -40,6 +40,8 @@ it('encrypt / decrypt', async () => {
     recipients: recipientPublicKeys
   });
 
+  // console.log(JSON.stringify(jwe, null, 2))
+
   for (const recipient of recipientPublicKeys.keys){
     const privateKey = resolvePrivateKey(recipient.kid)
     // simulate having only one of the recipient private keys
