@@ -43,7 +43,12 @@ export const encrypt = async (
 
   // encrypt the plaintext with the content encryption algorithm
 
-  const jweAad = base64url.encode(JSON.stringify(req.protectedHeader)) + '.' + base64url.encode(req.additionalAuthenticatedData || new Uint8Array())
+  let textAad = base64url.encode(JSON.stringify(req.protectedHeader))
+  if (req.additionalAuthenticatedData){
+    textAad += '.' + base64url.encode(req.additionalAuthenticatedData)
+  }
+
+  const jweAad =  textAad
 
   const encryption = await mixed.gcmEncrypt(
     req.protectedHeader.enc,
@@ -128,11 +133,18 @@ const produceDecryptionResult = async (protectedHeader: string, ciphertext: stri
   const ct = base64url.decode(ciphertext)
   const initializationVector = base64url.decode(iv);
   const parsedProtectedHeader = JSON.parse(new TextDecoder().decode(base64url.decode(protectedHeader)))
-  const contentEncryptionAad = new TextEncoder().encode(protectedHeader + '.' + aad)
+
+  let textAad = protectedHeader;
+  if (aad){
+    textAad += '.' + aad
+  }
+  const contentEncryptionAad = new TextEncoder().encode(textAad)
   const plaintext = await mixed.gcmDecrypt(parsedProtectedHeader.enc, cek, ct, initializationVector, base64url.decode(tag), contentEncryptionAad )
   const decryption = { plaintext: new Uint8Array(plaintext) } as any;
   decryption.protectedHeader = parsedProtectedHeader;
-  decryption.aad = base64url.decode(aad);
+  if (aad){
+    decryption.aad = base64url.decode(aad);
+  }
   return decryption
 }
 
