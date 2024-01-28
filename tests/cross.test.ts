@@ -9,6 +9,9 @@ it.only('encrypt (theirs) / decrypt (ours)', async () => {
   const key2 = await jose.generateKeyPair('RSA-OAEP-384')
   const message = new TextEncoder().encode('✨ It’s a dangerous business, Frodo, going out your door. ✨')
   const aad = new TextEncoder().encode('💀 aad')
+
+  const privateKeyJwk = await jose.exportJWK(key1.privateKey) as any;
+  privateKeyJwk.alg = 'ECDH-ES+A128KW'
   const jwe = await new jose.GeneralEncrypt(
     message
   )
@@ -20,11 +23,17 @@ it.only('encrypt (theirs) / decrypt (ours)', async () => {
     .setUnprotectedHeader({ alg: 'RSA-OAEP-384' })
     .encrypt()
 
+    const decrypted = await jose.generalDecrypt(jwe, await jose.importJWK(privateKeyJwk));
+    expect(new TextDecoder().decode(decrypted.additionalAuthenticatedData)).toBe('💀 aad')
+    expect(new TextDecoder().decode(decrypted.plaintext)).toBe('✨ It’s a dangerous business, Frodo, going out your door. ✨')
+    expect(decrypted.protectedHeader).toEqual({
+      "enc": "A128GCM"
+    })
 
     // simulate having only one of the recipient private keys
-    const recipientPrivateKeys =  { "keys": [ await jose.exportJWK(key1.privateKey) as any ] }
+    const recipientPrivateKeys =  { "keys": [  privateKeyJwk  ] }
     const decryption = await hpke.json.decrypt({ jwe, privateKeys: recipientPrivateKeys})
-    expect(new TextDecoder().decode(decryption.plaintext)).toBe(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
+    expect(new TextDecoder().decode(decryption.plaintext)).toBe(`✨ It’s a dangerous business, Frodo, going out your door. ✨`);
     expect(new TextDecoder().decode(decryption.aad)).toBe('💀 aad');
 })
 

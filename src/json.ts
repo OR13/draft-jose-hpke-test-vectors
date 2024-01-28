@@ -131,24 +131,25 @@ export type RequestGeneralDecrypt = {
 }
 
 
-const produceDecryptionResult = async (parsedProtectedHeader: any, ciphertext: string, tag: string, aad: string, iv: string, cek: Uint8Array) => {
+const produceDecryptionResult = async (protectedHeader: string, ciphertext: string, tag: string, aad: string, iv: string, cek: Uint8Array) => {
   let contentEncryptionAad = undefined;
-  if (aad) {
-    contentEncryptionAad = base64url.decode(aad)
-  }
+ 
   const ct = base64url.decode(ciphertext)
   const initializationVector = base64url.decode(iv);
 
-  const plaintext = await mixed.gcmDecrypt(parsedProtectedHeader.enc, cek, ct, initializationVector, base64url.decode(tag), contentEncryptionAad|| new Uint8Array() )
+  const parsedProtectedHeader = JSON.parse(new TextDecoder().decode(base64url.decode(protectedHeader)))
+
+  const contentEncryptionAAd = new TextEncoder().encode(protectedHeader + '.' + aad)
+
+  const plaintext = await mixed.gcmDecrypt(parsedProtectedHeader.enc, cek, ct, initializationVector, base64url.decode(tag), contentEncryptionAAd || new Uint8Array() )
   const decryption = { plaintext: new Uint8Array(plaintext) } as any;
   decryption.protectedHeader = parsedProtectedHeader;
-  decryption.aad = contentEncryptionAad;
+  decryption.aad = base64url.decode(aad);
   return decryption
 }
 
 export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
   const { protected: protectedHeader, recipients, iv, ciphertext, aad, tag } = req.jwe;
-  const parsedProtectedHeader = JSON.parse(new TextDecoder().decode(base64url.decode(protectedHeader)));
 
   // find a recipient for which we have a private key
   let matchingRecipient = undefined
@@ -196,7 +197,7 @@ export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
 
     // determine the content encryption algorithm
     // now that we know we have a key that supports it
-    return produceDecryptionResult(parsedProtectedHeader, ciphertext, tag, aad, iv, contentEncryptionKey);
+    return produceDecryptionResult(protectedHeader, ciphertext, tag, aad, iv, contentEncryptionKey);
   } else if (matchingPrivateKey.alg === 'ECDH-ES+A128KW') {
     // compute the shared secret from the recipient
     const sharedSecret = await mixed.deriveKey( matchingRecipient.header.epk, matchingPrivateKey)
@@ -204,7 +205,7 @@ export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
     // unrwap the content encryption key
     const contentEncryptionKey = mixed.unwrap('A128KW', sharedSecret, encryptedKey)
     // the test is the same for both HPKE-Base-P256-SHA256-AES128GCM and ECDH-ES+A128KW with A128GCM
-    return produceDecryptionResult(parsedProtectedHeader, ciphertext, tag, aad, iv, contentEncryptionKey);
+    return produceDecryptionResult(protectedHeader, ciphertext, tag, aad, iv, contentEncryptionKey);
   } else {
     throw new Error('Private key algorithm not supported.')
   }
