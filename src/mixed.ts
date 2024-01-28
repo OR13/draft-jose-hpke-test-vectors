@@ -132,11 +132,10 @@ export function gcmDecrypt(
   tag: Uint8Array,
   aad: Uint8Array,
 ) {
-  console.log('cek (ours)', Buffer.from(cek).toString('hex'))
+
   const keySize = parseInt(enc.slice(1, 4), 10)
   const algorithm = `aes-${keySize}-gcm`
-  console.log('iv (ours)', Buffer.from(iv).toString('hex'))
-  console.log('aad (ours)', Buffer.from(aad).toString('hex'))
+
   try {
     const decipher = createDecipheriv(algorithm, cek, iv, { authTagLength: 16 } as any) as any
     decipher.setAuthTag(tag)

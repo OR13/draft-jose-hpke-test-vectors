@@ -4,7 +4,7 @@ import * as hpke from '../src'
 import * as jose from 'jose'
 
 
-it.only('encrypt (theirs) / decrypt (ours)', async () => {
+it('encrypt (theirs) / decrypt (ours)', async () => {
   const key1 = await jose.generateKeyPair('ECDH-ES+A128KW', { crv: 'P-256', extractable: true })
   const key2 = await jose.generateKeyPair('RSA-OAEP-384')
   const message = new TextEncoder().encode('✨ It’s a dangerous business, Frodo, going out your door. ✨')
@@ -59,7 +59,7 @@ it('encrypt (ours) / decrypt (theirs)', async () => {
   });
   const decrypted = await jose.generalDecrypt(jwe, await jose.importJWK(privateKey2));
   expect(new TextDecoder().decode(decrypted.additionalAuthenticatedData)).toBe('💀 aad')
-  expect(new TextDecoder().decode(decrypted.plaintext)).toBe('✨ It’s a dangerous business, Frodo, going out your door. ✨')
+  expect(new TextDecoder().decode(decrypted.plaintext)).toBe('It’s a 💀 dangerous business 💀, Frodo, going out your door.')
   expect(decrypted.protectedHeader).toEqual({
     "enc": "A128GCM"
   })

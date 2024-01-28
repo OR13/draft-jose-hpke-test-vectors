@@ -43,13 +43,14 @@ export const encrypt = async (
 
   // encrypt the plaintext with the content encryption algorithm
 
+  const contentEncryptionAAd = base64url.encode(JSON.stringify(req.protectedHeader)) + '.' + base64url.encode(req.additionalAuthenticatedData || new Uint8Array())
 
   const encryption = await mixed.gcmEncrypt(
     req.protectedHeader.enc,
     req.plaintext,
     contentEncryptionKey,
     initializationVector,
-    req.additionalAuthenticatedData || new Uint8Array(),
+    new TextEncoder().encode(contentEncryptionAAd),
   )
 
   const ciphertext = base64url.encode(encryption.ciphertext)
