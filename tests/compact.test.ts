@@ -23,7 +23,7 @@ it('encrypt / decrypt', async () => {
   // }
   const message = `It’s a 💀 dangerous business 💀, Frodo, going out your door.`
   const plaintext = new TextEncoder().encode(message);
-  const ciphertext = await hpke.compact.encrypt(plaintext, publicKeyJwk)
-  const recovered = await hpke.compact.decrypt(ciphertext, privateKeyJwk)
+  const jwe = await hpke.compact.encrypt(plaintext, publicKeyJwk)
+  const recovered = await hpke.compact.decrypt(jwe, privateKeyJwk)
   expect(new TextDecoder().decode(recovered)).toBe(message);
 })
