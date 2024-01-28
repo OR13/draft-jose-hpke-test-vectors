@@ -20,7 +20,7 @@
     "test": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-vm-modules jest ",
     "coverage": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-vm-modules jest --ci --coverage",
     "lint": "eslint --fix",
-    "shove": "git add -A; git commit -m ':rocket:'; git push origin main"
+    "shove": "git pull origin main; git add -A; git commit -m ':rocket:'; git push origin main"
   },
   "repository": {
     "type": "git",
