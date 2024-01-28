@@ -1,3 +1,4 @@
+import fs from 'fs'
 
 import * as hpke from '../src'
 
@@ -40,7 +41,7 @@ it('encrypt / decrypt', async () => {
     recipients: recipientPublicKeys
   });
 
-  // console.log(JSON.stringify(jwe, null, 2))
+  fs.writeFileSync('./example.jwe.json', JSON.stringify(jwe, null, 2))
 
   for (const recipient of recipientPublicKeys.keys){
     const privateKey = resolvePrivateKey(recipient.kid)

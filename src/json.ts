@@ -43,14 +43,14 @@ export const encrypt = async (
 
   // encrypt the plaintext with the content encryption algorithm
 
-  const contentEncryptionAad = base64url.encode(JSON.stringify(req.protectedHeader)) + '.' + base64url.encode(req.additionalAuthenticatedData || new Uint8Array())
+  const jweAad = base64url.encode(JSON.stringify(req.protectedHeader)) + '.' + base64url.encode(req.additionalAuthenticatedData || new Uint8Array())
 
   const encryption = await mixed.gcmEncrypt(
     req.protectedHeader.enc,
     req.plaintext,
     contentEncryptionKey,
     initializationVector,
-    new TextEncoder().encode(contentEncryptionAad),
+    new TextEncoder().encode(jweAad),
   )
 
   const ciphertext = base64url.encode(encryption.ciphertext)
@@ -75,7 +75,7 @@ export const encrypt = async (
       // prepare the add for the seal operation for the recipient
       // ensure the recipient must process the protected header
       // and understand the chosen "encyption algorithm"
-      const hpkeSealAad = new TextEncoder().encode(protectedHeader)
+      const hpkeSealAad = new TextEncoder().encode(jweAad)
       // encrypt the content encryption key to the recipient, 
       // while binding the content encryption algorithm to the protected header
       const encrypted_key = base64url.encode(new Uint8Array(await sender.seal(contentEncryptionKey, hpkeSealAad)));
@@ -129,7 +129,7 @@ const produceDecryptionResult = async (protectedHeader: string, ciphertext: stri
   const initializationVector = base64url.decode(iv);
   const parsedProtectedHeader = JSON.parse(new TextDecoder().decode(base64url.decode(protectedHeader)))
   const contentEncryptionAad = new TextEncoder().encode(protectedHeader + '.' + aad)
-  const plaintext = await mixed.gcmDecrypt(parsedProtectedHeader.enc, cek, ct, initializationVector, base64url.decode(tag), contentEncryptionAad || new Uint8Array() )
+  const plaintext = await mixed.gcmDecrypt(parsedProtectedHeader.enc, cek, ct, initializationVector, base64url.decode(tag), contentEncryptionAad )
   const decryption = { plaintext: new Uint8Array(plaintext) } as any;
   decryption.protectedHeader = parsedProtectedHeader;
   decryption.aad = base64url.decode(aad);
@@ -177,7 +177,8 @@ export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
     // compute the additional data from the protected header
     // this will be used to protect against 
     // a cross mode attack on the aead
-    const hpkeOpenAad = new TextEncoder().encode(protectedHeader)
+    const jweAad = protectedHeader + '.' + aad
+    const hpkeOpenAad = new TextEncoder().encode(jweAad)
 
     // open the content encryption key for the given content encryption algorithm
     // which is described in the protected header
