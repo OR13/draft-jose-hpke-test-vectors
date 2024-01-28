@@ -87,34 +87,35 @@ it('encrypt / decrypt', async () => {
     recipients: recipientPublicKeys
   });
   // {
-  //     "protected": "eyJlbmMiOiJBMTI4R0NNIn0",
-  //     "ciphertext": "F0xDJfbjd3sjLUEv2Q3dArzUSITUw9dTiqIpIOWhzS-akIq2_rw68QdGSurWRhOR_I2sXZ0Xr9IP5yjjpJztD_skrvkpjlzuxZ2-6JUkw4Xnkg",
-  //     "iv": "ZQ-VkP5H9iQtuUyj",
-  //     "aad": "8J-SgCBhYWQ",
-  //     "recipients": [
-  //       {
-  //         "encrypted_key": "AV-gprT2_-G0XNnN_N9b9iSShXE9fQ0SpV6aAX-JxFnYNc7SU0BfTHl5TMNPaQBa",
-  //         "header": {
-  //           "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:8uKV5Zqa7Y9UPMIzixTtAy8sOp7oHjYndUxQWyIJpxM",
-  //           "alg": "HPKE-Base-P256-SHA256-AES128GCM",
-  //           "encapsulated_key": "BIZ4PEqGG9GSMSLPgT9o3gHkaIMWtLNauTuwMXXp-_cFSnH-24IUoJzISK3thEcosTq67KOWYK9jV9grPSpoMrw"
-  //         }
-  //       },
-  //       {
-  //         "encrypted_key": "5mVD6P9ySVkhpVEUL2Qy5Ka7Ttd49HwZjhVfoFj1JQFY2Yoa5U9pnQ",
-  //         "header": {
-  //           "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:bM_mRz5jXbHYtOXgmXuAoj5vOc62aC5s206AAKc7lI4",
-  //           "alg": "ECDH-ES+A128KW",
-  //           "epk": {
-  //             "kty": "EC",
-  //             "crv": "P-256",
-  //             "x": "A6BhREIaSalw6rdFjXyezWXkKbamSdD5qOR6NZMJI-c",
-  //             "y": "pPZ41NOAuFYuVDNVprSkQUs__L7YLMbnZws6FLXjB4U"
-  //           }
+  //   "protected": "eyJlbmMiOiJBMTI4R0NNIn0",
+  //   "ciphertext": "t7XOvW1SZgf-3fz7ZNSDiEEUKRdI9MdblC-8wLysN49ov0erROQDieZ-EFn0QnDFZw5RcGPMLWvO8ZkHfOsgzSld",
+  //   "iv": "Sl0fLuINvzicEgzQ",
+  //   "aad": "8J-SgCBhYWQ",
+  //   "tag": "xy3xYOfBM5ObzNXdeppkyw",
+  //   "recipients": [
+  //     {
+  //       "encrypted_key": "tURMb3-zPMhHoHZUGlnVUyQhscrpQenjrRKorM2DoDo",
+  //       "header": {
+  //         "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:RLaSa8XtodlM3fLoS7IGBL21lgXOP-nVg7obhAf8AVs",
+  //         "alg": "HPKE-Base-P256-SHA256-AES128GCM",
+  //         "encapsulated_key": "BESPDLvUeBwkSsQhrZpY4lS-fFE_3LcQCh8TuUsphvrSd1oapl6SNg-Hs0poV8rn-KCbyWGuY6IAABpRlNUiH3g"
+  //       }
+  //     },
+  //     {
+  //       "encrypted_key": "zuVnoUXttYnMW9FtxXPkSD_rF__Udixs",
+  //       "header": {
+  //         "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:2M7TcrbAuR5riiLzxwWN_NR6Js8fMFtu-tVLakgqoAo",
+  //         "alg": "ECDH-ES+A128KW",
+  //         "epk": {
+  //           "kty": "EC",
+  //           "crv": "P-256",
+  //           "x": "H5jZ_QhKH8XfqvKT6lqWO0yGSMLA8VukIDmdHzQnca4",
+  //           "y": "BmWr4pxMoQI_BJaachjhP_YfMKXNmStHiQGkKFDXdaE"
   //         }
   //       }
-  //     ]
-  //   }
+  //     }
+  //   ]
+  // }
   for (const recipient of recipientPublicKeys.keys){
     const privateKey = resolvePrivateKey(recipient.kid)
     // simulate having only one of the recipient private keys
