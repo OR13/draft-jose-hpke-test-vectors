@@ -100,3 +100,56 @@ export const unwrap: any = (
   const cipher = createDecipheriv(algorithm, keyObject, Buffer.alloc(8, 0xa6))
   return concat(cipher.update(encryptedKey), cipher.final())
 }
+
+export function gcmEncrypt(
+  enc: string,
+  plaintext: Uint8Array,
+  cek: Uint8Array,
+  iv: Uint8Array,
+  aad: Uint8Array,
+) {
+  const keySize = parseInt(enc.slice(1, 4), 10)
+  const algorithm = `aes-${keySize}-gcm`
+ 
+  const cipher = createCipheriv(algorithm, cek, iv, { authTagLength: 16 } as any) as any
+  if (aad.byteLength) {
+
+    cipher.setAAD(aad, { plaintextLength: plaintext.length })
+  }
+
+  const ciphertext = cipher.update(plaintext)
+  cipher.final()
+  const tag = cipher.getAuthTag()
+
+  return { ciphertext, tag }
+}
+
+
+export function gcmDecrypt(
+  enc: string,
+  cek:  Uint8Array,
+  ciphertext: Uint8Array,
+  iv: Uint8Array,
+  tag: Uint8Array,
+  aad: Uint8Array,
+) {
+  const keySize = parseInt(enc.slice(1, 4), 10)
+
+
+  const algorithm = `aes-${keySize}-gcm`
+ 
+  try {
+    const decipher = createDecipheriv(algorithm, cek, iv, { authTagLength: 16 } as any) as any
+    decipher.setAuthTag(tag)
+    if (aad.byteLength) {
+      decipher.setAAD(aad, { plaintextLength: ciphertext.length })
+    }
+
+    const plaintext = decipher.update(ciphertext)
+    decipher.final()
+    return plaintext
+  } catch {
+    throw new Error('XXXX Decryption failed.')
+  }
+}
+

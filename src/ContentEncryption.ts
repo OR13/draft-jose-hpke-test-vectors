@@ -24,9 +24,10 @@ export const generateContentEncryptionKey = async (enc: string) => {
     // probably not the right salt for JOSE... 
     // but note that because ikm is generated randomly above...
     // this does nothing useful here...
-    const salt = new TextEncoder().encode("The Cryptographic Message Syntax")
-    const ikm = new Uint8Array(contentEncryptionKey)
-    return new Uint8Array(await hkdfSha256.extract(salt, ikm))
+    // const salt = new TextEncoder().encode("The Cryptographic Message Syntax")
+    // const ikm = new Uint8Array(contentEncryptionKey)
+    // return new Uint8Array(await hkdfSha256.extract(salt, ikm))
+    return contentEncryptionKey
   } else {
     throw new Error('Unsupported content encryption algorithm')
   }

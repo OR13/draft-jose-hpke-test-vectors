@@ -17,9 +17,9 @@ export type RequestGeneralEncrypt = {
 }
 
 const sortJsonSerialization = (jwe: any)=> {
-  const { protected: protectedHeader, ciphertext, iv, aad, recipients} = jwe
+  const { protected: protectedHeader, ciphertext, iv, aad, tag, recipients} = jwe
   return JSON.parse(JSON.stringify({
-    protected: protectedHeader, ciphertext, iv, aad, recipients
+    protected: protectedHeader, ciphertext, iv, aad, tag, recipients
   }))
 }
 
@@ -42,15 +42,22 @@ export const encrypt = async (
   const protectedHeader = base64url.encode(JSON.stringify(req.protectedHeader))
 
   // encrypt the plaintext with the content encryption algorithm
-  const ciphertext = base64url.encode(await ContentEncryption.encryptContent(
+
+
+  const encryption = await mixed.gcmEncrypt(
     req.protectedHeader.enc,
     req.plaintext,
+    contentEncryptionKey,
     initializationVector,
-    req.additionalAuthenticatedData,
-    contentEncryptionKey
-  ))
+    req.additionalAuthenticatedData || new Uint8Array(),
+  )
+
+  const ciphertext = base64url.encode(encryption.ciphertext)
+  const tag = base64url.encode(encryption.tag)
+
   jwe.ciphertext = ciphertext;
   jwe.iv = iv;
+  jwe.tag = tag;
 
   // for each recipient public key, encrypt the content encryption key to the recipient public key
   // and add the result to the unprotected header recipients property
@@ -124,14 +131,15 @@ export type RequestGeneralDecrypt = {
 }
 
 
-const produceDecryptionResult = async (parsedProtectedHeader: any, ciphertext: string, aad: string, iv: string, cek: Uint8Array) => {
+const produceDecryptionResult = async (parsedProtectedHeader: any, ciphertext: string, tag: string, aad: string, iv: string, cek: Uint8Array) => {
   let contentEncryptionAad = undefined;
   if (aad) {
     contentEncryptionAad = base64url.decode(aad)
   }
   const ct = base64url.decode(ciphertext)
   const initializationVector = base64url.decode(iv);
-  const plaintext = await ContentEncryption.decryptContent(parsedProtectedHeader.enc, ct, initializationVector, contentEncryptionAad, cek)
+
+  const plaintext = await mixed.gcmDecrypt(parsedProtectedHeader.enc, cek, ct, initializationVector, base64url.decode(tag), contentEncryptionAad|| new Uint8Array() )
   const decryption = { plaintext: new Uint8Array(plaintext) } as any;
   decryption.protectedHeader = parsedProtectedHeader;
   decryption.aad = contentEncryptionAad;
@@ -139,7 +147,7 @@ const produceDecryptionResult = async (parsedProtectedHeader: any, ciphertext: s
 }
 
 export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
-  const { protected: protectedHeader, recipients, iv, ciphertext, aad } = req.jwe;
+  const { protected: protectedHeader, recipients, iv, ciphertext, aad, tag } = req.jwe;
   const parsedProtectedHeader = JSON.parse(new TextDecoder().decode(base64url.decode(protectedHeader)));
 
   // find a recipient for which we have a private key
@@ -188,7 +196,7 @@ export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
 
     // determine the content encryption algorithm
     // now that we know we have a key that supports it
-    return produceDecryptionResult(parsedProtectedHeader, ciphertext, aad, iv, contentEncryptionKey);
+    return produceDecryptionResult(parsedProtectedHeader, ciphertext, tag, aad, iv, contentEncryptionKey);
   } else if (matchingPrivateKey.alg === 'ECDH-ES+A128KW') {
     // compute the shared secret from the recipient
     const sharedSecret = await mixed.deriveKey( matchingRecipient.header.epk, matchingPrivateKey)
@@ -196,7 +204,7 @@ export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
     // unrwap the content encryption key
     const contentEncryptionKey = mixed.unwrap('A128KW', sharedSecret, encryptedKey)
     // the test is the same for both HPKE-Base-P256-SHA256-AES128GCM and ECDH-ES+A128KW with A128GCM
-    return produceDecryptionResult(parsedProtectedHeader, ciphertext, aad, iv, contentEncryptionKey);
+    return produceDecryptionResult(parsedProtectedHeader, ciphertext, tag, aad, iv, contentEncryptionKey);
   } else {
     throw new Error('Private key algorithm not supported.')
   }
