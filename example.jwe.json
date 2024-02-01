@@ -1,28 +1,28 @@
 {
   "protected": "eyJlbmMiOiJBMTI4R0NNIn0",
-  "ciphertext": "S0qqrM3xXPUavbmL9LQkgUKRBu8BZ7DQWoT-mdNIZVU-ip_V-fbMokiGwp2aPM57DX3cXCK3TKHqdhZ8rSNduUja",
-  "iv": "AzaXpooLg3ZxEASQ",
+  "ciphertext": "Ml68QMb9aYjdVHDjcjkSqazrhQG7hGr9RSM_olrhgUdoKbcLUozctgK_WsDrRD-ACMzusgidYvw65xEKn5QEKpkp",
+  "iv": "amGOApE87zXZ_uzS",
   "aad": "8J-SgCBhYWQ",
-  "tag": "S0omWw35S0H7tyEHsmGLDw",
+  "tag": "92ZYic7Yo9dVXTVf18a8rQ",
   "recipients": [
     {
-      "encrypted_key": "yDVZLsO7-ecy_GCgEluwn9U723TCHNAzeYRRQPOfpHM",
+      "encrypted_key": "XVmCvpJ5J1nrX3jMukMYhDCSvudYTbTCZCNtCaCw8o0",
       "header": {
-        "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:adjwW6fyyZ94ZBjGjx_OpDEKHLGfd1ELkug_YmRAjCk",
+        "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:6VBXZvxIs8XpqYe2U9F0554cZhLxW2YK03h5aASnWdA",
         "alg": "HPKE-Base-P256-SHA256-AES128GCM",
-        "encapsulated_key": "BHpP-u5JKziyUpqxNQqb0apHx1ecH2UzcRlhHR4ngJVS__gNu21DqqgPweuPpjglnXDnOuQ4kt9tHCs3PUzPxQs"
+        "encapsulated_key": "BMRhmI85odU8QkVoNPhIPMb6kP18VnqczHmqc7CmafZpylIOONVou1FeT8U85xJKKpbqsna4nhmc68TMii3WPRY"
       }
     },
     {
-      "encrypted_key": "iS73TFqJ61gkmh4DHAXADx4wyftA7pnY",
+      "encrypted_key": "XXrwcqFjClq5Lq3EFM5P1vY2GIvSCaCi",
       "header": {
-        "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:D2FKlj9MTIQma5bwdOVXk5Zh3_d60knzlbmD-SyMNAI",
+        "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:T8Vu-97u9jN7yI4ohIJv1JUVMaycO62SVrvjjVNdIlQ",
         "alg": "ECDH-ES+A128KW",
         "epk": {
           "kty": "EC",
           "crv": "P-256",
-          "x": "nX6Y3DWC0olVe5H7-NkCzVDghsYSa_L9da3jzkHYkV8",
-          "y": "wDshQdcaY0J08wx25V3ystQSNe_qjsCaaFeeRWJqcE0"
+          "x": "OYawzwCyeyIvUa5p8s99kfLn6Yt8SXTnycs-nCKUgpg",
+          "y": "45d684BuTZ6qzHylOIv3rfDEQIjxpqjxms1XlpN0aK0"
         }
       }
     }
