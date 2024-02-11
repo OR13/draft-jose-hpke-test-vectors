@@ -70,7 +70,6 @@ describe('KeyEncryption', () => {
     expect(decryption.aad).toBeUndefined()
   })
 
-
   it('Multiple Recipients General JSON', async () => {
     // recipient 1
     const privateKey1 = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
@@ -122,7 +121,7 @@ describe('KeyEncryption', () => {
   })
 
 
-  it.skip('Single Recipient Compact (no aad)', async () => {
+  it('Single Recipient Compact (no aad)', async () => {
     // recipient 1
     const privateKey1 = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
     const publicKey1 = await hpke.keys.publicFromPrivate(privateKey1)
@@ -152,6 +151,8 @@ describe('KeyEncryption', () => {
     const decryption = await hpke.KeyEncryption.decrypt({ jwe , privateKeys: recipientPrivateKeys }, {serialization: 'Compact'})
     expect(new TextDecoder().decode(decryption.plaintext)).toBe(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
     expect(decryption.aad).toBeUndefined()
+
+
 
   })
 })

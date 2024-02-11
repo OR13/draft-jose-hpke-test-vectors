@@ -146,19 +146,17 @@ export const encrypt = async (
     jwe.aad = base64url.encode(req.additionalAuthenticatedData)
   }
 
-
   const general =  sortJsonSerialization(jwe);
   if (options.serialization === 'GeneralJson'){
     return general
   }
   if (options.serialization === 'Compact'){
-    if (general.recipients.length > 1){
+    if (general.recipients !== undefined){
       throw new Error('Compact serialization does not support multiple recipients')
     }
-    const compact = `${general.protected}.${general.recipients[0].encrypted_key}.${general.iv}.${general.ciphertext}.${general.tag}`
+    const compact = `${general.protected}.${general.encrypted_key}.${general.iv}.${general.ciphertext}.${general.tag}`
     return compact
   }
- 
 
   throw new Error('Unsupported serialization')
 }
@@ -205,7 +203,7 @@ export const decrypt = async (req: RequestGeneralDecrypt, options = {serializati
     ({ protected: protectedHeader, encrypted_key, recipients, iv, ciphertext, aad, tag } = req.jwe);
   }
 
-  if (recipients === undefined){
+  if (recipients === undefined && options.serialization !== 'Compact' && typeof req.jwe !== 'string'){
     if (req.privateKeys.keys.length !== 1){
       throw new Error('Expected single private key for single recipient general json')
     }
@@ -226,10 +224,18 @@ export const decrypt = async (req: RequestGeneralDecrypt, options = {serializati
     if (typeof req.jwe === 'object'){
         throw new Error('Compact decrypt requires jwe as string')
     }
-    const [protectedHeader,] = req.jwe.split('.')
-
-    // console.log(parts)
-    // ({ protected: protectedHeader, recipients, iv, ciphertext, aad, tag } = req.jwe);
+    ([protectedHeader, encrypted_key, iv, ciphertext, tag] = req.jwe.split('.'))
+    const parsedProtectedHeader = JSON.parse(new TextDecoder().decode(base64url.decode(protectedHeader)))
+    recipients = [
+      {
+        encrypted_key,
+        header: {
+          kid: req.privateKeys.keys[0].kid,
+          alg: req.privateKeys.keys[0].alg,
+          epk: parsedProtectedHeader.epk
+        }
+      }
+    ]
   }
  
   // find a recipient for which we have a private key
