@@ -15,9 +15,18 @@ export type RequestGeneralEncrypt = {
 }
 
 const sortJsonSerialization = (jwe: any)=> {
-  const { protected: protectedHeader, ciphertext, iv, aad, tag, recipients} = jwe
+  // https://datatracker.ietf.org/doc/html/rfc7516#section-3.2
+  const { protected: protectedHeader, unprotected, header, encrypted_key, ciphertext, iv, aad, tag, recipients} = jwe
   return JSON.parse(JSON.stringify({
-    protected: protectedHeader, ciphertext, iv, aad, tag, recipients
+    protected: protectedHeader, 
+    unprotected,
+    header,
+    encrypted_key,
+    iv,
+    ciphertext, 
+    tag, 
+    aad,
+    recipients, 
   }))
 }
 
@@ -35,9 +44,12 @@ export const encrypt = async (
   options = {serialization: 'GeneralJson'}
 ): Promise<any> => {
 
+  let jwe = {} as any;
   const unprotectedHeader = {
     recipients: [] as HPKERecipient[]
   }
+  let protectedHeader = base64url.encode(JSON.stringify(req.protectedHeader))
+  jwe.protected = protectedHeader
 
   let jweAad = prepareAad(req.protectedHeader, req.additionalAuthenticatedData)
 
@@ -56,20 +68,31 @@ export const encrypt = async (
       // prepare the add for the seal operation for the recipient
       // ensure the recipient must process the protected header
       // and understand the chosen "encyption algorithm"
+  
+      if (req.recipients.keys.length === 1){
+        let newHeader = {...req.protectedHeader, epk: {kty: 'EK', ek: encapsulatedKey}}
+        jwe.protected = base64url.encode(JSON.stringify(newHeader))
+        jweAad = prepareAad(newHeader, req.additionalAuthenticatedData)
+      }
+      
       const hpkeSealAad = new TextEncoder().encode(jweAad)
       // encrypt the content encryption key to the recipient, 
       // while binding the content encryption algorithm to the protected header
       const encrypted_key = base64url.encode(new Uint8Array(await sender.seal(contentEncryptionKey, hpkeSealAad)));
-      unprotectedHeader.recipients.push(
-        {
-          encrypted_key: encrypted_key,
-          header: {
-            kid: recipient.kid,
-            alg: recipient.alg,
-            encapsulated_key: encapsulatedKey,
+      jwe.encrypted_key = encrypted_key
+      if (req.recipients.keys.length !== 1){
+        unprotectedHeader.recipients.push(
+          {
+            encrypted_key: encrypted_key,
+            header: {
+              kid: recipient.kid,
+              alg: recipient.alg,
+              epk: {kty: 'EK', ek: encapsulatedKey} as any,
+            } as any
           }
-        }
-      )
+        )
+      }
+      
     } else if (recipient.alg === 'ECDH-ES+A128KW') {
       // throw new Error('Mixed mode not supported')
       const ek = await jose.generateKeyPair(recipient.alg, { crv: recipient.crv, extractable: true })
@@ -89,19 +112,11 @@ export const encrypt = async (
     }
 
   }
-
-  // prepare the encrypted content for all recipients
-  let jwe = {} as any;
-
  
-
   // generate an initialization vector for use with the content encryption key
   const initializationVector = crypto.getRandomValues(new Uint8Array(12)); // possibly wrong
   const iv = base64url.encode(initializationVector)
 
-  // create the protected header
-  // top level protected header only has "enc"
-  const protectedHeader = base64url.encode(JSON.stringify(req.protectedHeader))
 
   // encrypt the plaintext with the content encryption algorithm
 
@@ -123,12 +138,15 @@ export const encrypt = async (
   // and add the result to the unprotected header recipients property
  
   jwe.recipients = unprotectedHeader.recipients
+  if (jwe.recipients.length === 0){
+    jwe.recipients = undefined
+  }
 
   if (req.additionalAuthenticatedData) {
     jwe.aad = base64url.encode(req.additionalAuthenticatedData)
   }
 
-  jwe.protected = protectedHeader
+
   const general =  sortJsonSerialization(jwe);
   if (options.serialization === 'GeneralJson'){
     return general
@@ -179,11 +197,29 @@ const produceDecryptionResult = async (protectedHeader: string, ciphertext: stri
 
 export const decrypt = async (req: RequestGeneralDecrypt, options = {serialization: 'GeneralJson'}): Promise<any> => {
   let { protected: protectedHeader, recipients, iv, ciphertext, aad, tag } = {} as any
+  let encrypted_key;
   if (options.serialization === 'GeneralJson'){
     if (typeof req.jwe !== 'object'){
         throw new Error('GeneralJson decrypt requires jwe as object')
     }
-    ({ protected: protectedHeader, recipients, iv, ciphertext, aad, tag } = req.jwe);
+    ({ protected: protectedHeader, encrypted_key, recipients, iv, ciphertext, aad, tag } = req.jwe);
+  }
+
+  if (recipients === undefined){
+    if (req.privateKeys.keys.length !== 1){
+      throw new Error('Expected single private key for single recipient general json')
+    }
+    const parsedProtectedHeader = JSON.parse(new TextDecoder().decode(base64url.decode(protectedHeader)))
+    recipients = [
+      {
+        encrypted_key,
+        header: {
+          kid: req.privateKeys.keys[0].kid,
+          alg: req.privateKeys.keys[0].alg,
+          epk: parsedProtectedHeader.epk
+        }
+      }
+    ]
   }
 
   if (options.serialization === 'Compact'){
@@ -196,10 +232,6 @@ export const decrypt = async (req: RequestGeneralDecrypt, options = {serializati
     // ({ protected: protectedHeader, recipients, iv, ciphertext, aad, tag } = req.jwe);
   }
  
-
-  
-  
-
   // find a recipient for which we have a private key
   let matchingRecipient = undefined
   let matchingPrivateKey = undefined
@@ -227,7 +259,7 @@ export const decrypt = async (req: RequestGeneralDecrypt, options = {serializati
 
     // selected the encapsulated_key for the recipient
     const { encrypted_key, header } = matchingRecipient;
-    const { encapsulated_key } = header
+    const { epk: {ek: encapsulated_key} } = header
 
     // create the HPKE recipient
     const recipient = await suite.createRecipientContext({
