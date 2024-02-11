@@ -192,9 +192,10 @@ export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
     })
 
     // compute the additional data from the protected header
-    // this will be used to protect against 
-    // a cross mode attack on the aead
-    const jweAad = protectedHeader + '.' + aad
+    let jweAad = protectedHeader
+    if (aad){
+      jweAad += '.' + aad
+    }
     const hpkeOpenAad = new TextEncoder().encode(jweAad)
 
     // open the content encryption key for the given content encryption algorithm
