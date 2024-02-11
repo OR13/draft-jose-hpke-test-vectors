@@ -1,28 +1,28 @@
 {
   "protected": "eyJlbmMiOiJBMTI4R0NNIn0",
-  "ciphertext": "HYRggzSeDG0Wbd6v9lFsk49E3uXLRzwkrqbWstusNoyRYdDqHXjJA5fC41_J46hTp5x_-nC7EDO4yvewE56uLbnV",
-  "iv": "HP9WwcEB1gudO15I",
+  "ciphertext": "VewBanbGOtEDs6YxDTtQS8pSBPwBszgW3zhT0zcetgsKuXGfHJjQGgS2R-bhIEXuSuy6PMuI-zGyJtvK96d50F7q",
+  "iv": "qQga0vsMdPIvWtym",
   "aad": "8J-SgCBhYWQ",
-  "tag": "5Z09j1vowa3QB0oPLpzMFw",
+  "tag": "fCCYfqru5SPBBG6xeszqoA",
   "recipients": [
     {
-      "encrypted_key": "YferNwEr7fmSA3vEhrs2HvgFiRTBne2eG_Zn603b414",
+      "encrypted_key": "58Oq89Oy89FK2bZfLoicbVaro5dEWneoVMwllpNIBLo",
       "header": {
-        "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:hucdXc6skImW2SvFSeq3azch_TirOL8ahwU6TSEhLws",
+        "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:Z2VhSVE1HxXNhfy3rg149OUIK8UylaZelqCD4bRRTAA",
         "alg": "HPKE-Base-P256-SHA256-AES128GCM",
-        "encapsulated_key": "BGpLApmgNWqLSZcAKPnAD6t9vfRlvKIB9Ez2b02nc6s2f1dZSALd8F50NO7o0aOle-BrFHwvVuxWSq3GfnhRfJk"
+        "encapsulated_key": "BLww3jWYJi8T8NspbjO0yxCvadTVOLbSXkUl_o7Kkvy7WQj3X0Txif7OUVO_wTfuT9hdHF2EVUQJQaXsr3Ge-bs"
       }
     },
     {
-      "encrypted_key": "2Yrx55y1bmB77bhWaagJufagY8YL-5UJ",
+      "encrypted_key": "s4TBFAHutxz1haRvrKUmOdptAfuyKD2a",
       "header": {
-        "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:jIYqPv946pmX3MU4FREUMHnNtH4PReeXAtxllKeCOqM",
+        "kid": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:0UCM4AnMn3an5XXKxFDX1NkkUgWspZFmW86DvN3u5rA",
         "alg": "ECDH-ES+A128KW",
         "epk": {
           "kty": "EC",
           "crv": "P-256",
-          "x": "noehQhLxRze9QmrJQus_ZQhOwH1QrFWFNBxKT-SlU5Y",
-          "y": "z5rfR531XX5IrR0i1MlWFBGssdQz31ovV6MQAmTSXN0"
+          "x": "9YdM2Kb0Imbd69OolgFBhXfiqCpekXv4eHIX9BJfmcM",
+          "y": "UzqNCO1Sa9Wr20sE5-AhtGUmqCqrY-TlAatFbLu9RMg"
         }
       }
     }

@@ -1,10 +1,8 @@
 import { base64url } from "jose";
 
-
 import { publicKeyFromJwk, suites, isKeyAlgorithmSupported, privateKeyFromJwk, JOSE_HPKE_ALG } from "./keys";
 
-
-export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any): Promise<string> => {
+export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any, options = { serialization: 'CompactSerialization'}): Promise<string | any> => {
   if (!isKeyAlgorithmSupported(publicKeyJwk)) {
     throw new Error('Public key algorithm is not supported')
   }
@@ -24,11 +22,41 @@ export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any): Promise
   const hpkeSealAad = new TextEncoder().encode(protectedHeader)
   const ciphertext = base64url.encode(new Uint8Array(await sender.seal(plaintext, hpkeSealAad)));
   // https://datatracker.ietf.org/doc/html/rfc7516#section-3.1
-  return `${protectedHeader}...${ciphertext}.`
+  const compact = `${protectedHeader}...${ciphertext}.`
+  if (options.serialization === 'CompactSerialization'){
+    return compact
+  }
+  if (options.serialization === 'GeneralJson'){
+    const [protectedHeader, encryptedKey, initializationVector, ciphertext, tag] = compact.split('.')
+    return JSON.parse(JSON.stringify({
+      protected: protectedHeader,
+      encrypted_key: encryptedKey.length === 0 ? undefined: encryptedKey,
+      iv: initializationVector.length === 0 ? undefined: initializationVector,
+      tag: tag.length === 0 ? undefined: tag,
+      ciphertext: ciphertext.length === 0 ? undefined: ciphertext
+    }))
+  }
+  throw new Error('Unsupported Serialization.')
 
 }
 
-export const decrypt = async (compact: string, privateKeyJwk: any): Promise<Uint8Array> => {
+export const decrypt = async (jwe: string | any, privateKeyJwk: any, options = { serialization: 'CompactSerialization'}): Promise<Uint8Array> => {
+  if (typeof jwe === 'object' && options.serialization !== 'GeneralJson'){
+    throw new Error('expected object for general json serialization decrypt.')
+  }
+  let compact = ''
+  if (options.serialization === 'CompactSerialization'){
+    if (typeof jwe !== 'string'){
+      throw new Error('expected string for compact serialization decrypt.')
+    }
+    compact = jwe
+  }
+  if (options.serialization === 'GeneralJson'){
+    if (typeof jwe !== 'object'){
+      throw new Error('expected object for general json serialization decrypt.')
+    }
+    compact = `${jwe.protected}...${jwe.ciphertext}.`
+  }
   if (!isKeyAlgorithmSupported(privateKeyJwk)) {
     throw new Error('Public key algorithm is not supported')
   }

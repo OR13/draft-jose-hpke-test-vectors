@@ -1,29 +1,30 @@
 
 import * as hpke from '../src'
 
-it('encrypt / decrypt', async () => {
-  const privateKeyJwk = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
-  // {
-  //   kid: 'urn:ietf:params:oauth:jwk-thumbprint:sha-256:om1gRRYAiZ3CRMlvnSizjYzaX-t94m96A5DWzM78lm0',
-  //   alg: 'HPKE-Base-P256-SHA256-AES128GCM',
-  //   kty: 'EC',
-  //   crv: 'P-256',
-  //   x: 'UQoMdtvzzboEH-Jj41mfnw7FT6HdJhemsP7R5SJRDcM',
-  //   y: 'I4TQnPtVyFwKz_G8DLcAPvx1QwHCIjlWw6_WOB6tLDo',
-  //   d: 'lhDRw6qmjx1cX-1X2P3oljMPTlvS-wsosdGejGbxMss'
-  // }
-  const publicKeyJwk = await hpke.keys.publicFromPrivate(privateKeyJwk)
-  // {
-  //   kid: 'urn:ietf:params:oauth:jwk-thumbprint:sha-256:zLL3uvca9qDXqK1UysySHW720kcKVcEqOf7KBIVZg6Q',
-  //   alg: 'HPKE-Base-P256-SHA256-AES128GCM',
-  //   kty: 'EC',
-  //   crv: 'P-256',
-  //   x: 'W-70J8fA-XcYE3PiSIy_wNz-TQ_-j_QrOGLAo30YuN0',
-  //   y: 'v6DySTYHurdTKwNa-AN7LwHSh-jN9x4a3uO1r38b1EI'
-  // }
-  const message = `It’s a 💀 dangerous business 💀, Frodo, going out your door.`
-  const plaintext = new TextEncoder().encode(message);
-  const jwe = await hpke.IntegratedEncryption.encrypt(plaintext, publicKeyJwk)
-  const recovered = await hpke.IntegratedEncryption.decrypt(jwe, privateKeyJwk)
-  expect(new TextDecoder().decode(recovered)).toBe(message);
+
+describe('encrypt / decrypt ', ()=>{
+  it('Compact', async () => {
+    const privateKeyJwk = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
+    const publicKeyJwk = await hpke.keys.publicFromPrivate(privateKeyJwk)
+    const message = `It’s a 💀 dangerous business 💀, Frodo, going out your door.`
+    const plaintext = new TextEncoder().encode(message);
+    const jwe = await hpke.IntegratedEncryption.encrypt(plaintext, publicKeyJwk)
+    expect(jwe.split('.').length).toBe(5) // compact jwe is default
+    const recovered = await hpke.IntegratedEncryption.decrypt(jwe, privateKeyJwk)
+    expect(new TextDecoder().decode(recovered)).toBe(message);
+  })
+  it('JSON', async () => {
+    const privateKeyJwk = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
+    const publicKeyJwk = await hpke.keys.publicFromPrivate(privateKeyJwk)
+    const message = `It’s a 💀 dangerous business 💀, Frodo, going out your door.`
+    const plaintext = new TextEncoder().encode(message);
+    const jwe = await hpke.IntegratedEncryption.encrypt(plaintext, publicKeyJwk, { serialization: 'GeneralJson'})
+    expect(jwe.protected).toBeDefined()
+    expect(jwe.ciphertext).toBeDefined()
+    expect(jwe.iv).toBeUndefined()
+    expect(jwe.tag).toBeUndefined()
+    expect(jwe.encrypted_key).toBeUndefined()
+    const recovered = await hpke.IntegratedEncryption.decrypt(jwe, privateKeyJwk, { serialization: 'GeneralJson'})
+    expect(new TextDecoder().decode(recovered)).toBe(message);
+  })
 })
