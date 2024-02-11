@@ -13,7 +13,8 @@ export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any, options 
 
   const encapsulatedKey = base64url.encode(new Uint8Array(sender.enc))
   const protectedHeader = base64url.encode(JSON.stringify({
-    alg: publicKeyJwk.alg,
+    alg: "dir",
+    enc: publicKeyJwk.alg,
     "epk": {
       "kty": "EK",
       "ek": encapsulatedKey
@@ -37,7 +38,6 @@ export const encrypt = async (plaintext: Uint8Array, publicKeyJwk: any, options 
     }))
   }
   throw new Error('Unsupported Serialization.')
-
 }
 
 export const decrypt = async (jwe: string | any, privateKeyJwk: any, options = { serialization: 'CompactSerialization'}): Promise<Uint8Array> => {
@@ -63,6 +63,12 @@ export const decrypt = async (jwe: string | any, privateKeyJwk: any, options = {
   const suite = suites[privateKeyJwk.alg as JOSE_HPKE_ALG]
   const [protectedHeader, _blankEncKey, _blankIv, ciphertext, _blankTag] = compact.split('.');
   const decodedProtectedHeader = JSON.parse(new TextDecoder().decode(base64url.decode(protectedHeader)))
+  if (decodedProtectedHeader.alg !== 'dir'){
+    throw new Error('Expected alg:dir for integrated encryption.')
+  }
+  if (decodedProtectedHeader.enc !== privateKeyJwk.alg){
+    throw new Error('Private key does not support this algorithm: ' + decodedProtectedHeader.enc)
+  }
   const recipient = await suite.createRecipientContext({
     recipientKey: await privateKeyFromJwk(privateKeyJwk),
     enc: base64url.decode(decodedProtectedHeader.epk.ek)
