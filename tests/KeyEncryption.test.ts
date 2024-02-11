@@ -20,6 +20,40 @@ describe('KeyEncryption', () => {
         publicKey1
       ]
     }
+    const aad = new TextEncoder().encode('💀 aad')
+    const plaintext = new TextEncoder().encode(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
+    const contentEncryptionAlgorithm = 'A128GCM'
+    const jwe = await hpke.KeyEncryption.encrypt({
+      protectedHeader: { enc: contentEncryptionAlgorithm },
+      plaintext,
+      additionalAuthenticatedData: aad,
+      recipients: recipientPublicKeys
+    }, {serialization: 'GeneralJson'});
+    const privateKey = resolvePrivateKey(publicKey1.kid)
+    const recipientPrivateKeys = { "keys": [privateKey] }
+    const decryption = await hpke.KeyEncryption.decrypt({ jwe , privateKeys: recipientPrivateKeys }, {serialization: 'GeneralJson'})
+    expect(decryption.protectedHeader.epk.kty).toBe('EK')
+    expect(decryption.protectedHeader.enc).toBe('A128GCM')
+    expect(new TextDecoder().decode(decryption.plaintext)).toBe(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
+    expect(new TextDecoder().decode(decryption.aad)).toBe('💀 aad');
+  })
+
+  it('Single Recipient JSON (without aad)', async () => {
+    // recipient 1
+    const privateKey1 = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
+    const publicKey1 = await hpke.keys.publicFromPrivate(privateKey1)
+    const resolvePrivateKey = (kid: string) => {
+      if (kid === publicKey1.kid) {
+        return privateKey1
+      }
+      throw new Error('Unknown kid')
+    }
+    // recipients as a JWKS
+    const recipientPublicKeys = {
+      "keys": [
+        publicKey1
+      ]
+    }
     const plaintext = new TextEncoder().encode(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
     const contentEncryptionAlgorithm = 'A128GCM'
     const jwe = await hpke.KeyEncryption.encrypt({
