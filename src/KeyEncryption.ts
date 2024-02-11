@@ -3,8 +3,6 @@ import { base64url } from "jose";
 
 import { publicKeyFromJwk, privateKeyFromJwk, HPKERecipient, isKeyAlgorithmSupported, suites, JOSE_HPKE_ALG, JWKS, formatJWK } from "./keys";
 
-import * as ContentEncryption from './ContentEncryption'
-
 import * as mixed from './mixed'
 
 import * as jose from 'jose'
@@ -31,7 +29,7 @@ export const encrypt = async (
   let jwe = {} as any;
 
   // generate a content encryption key for a content encryption algorithm
-  const contentEncryptionKey = await ContentEncryption.generateContentEncryptionKey(req.protectedHeader.enc);
+  const contentEncryptionKey = crypto.randomBytes(16); // for A128GCM
 
   // generate an initialization vector for use with the content encryption key
   const initializationVector = crypto.getRandomValues(new Uint8Array(12)); // possibly wrong

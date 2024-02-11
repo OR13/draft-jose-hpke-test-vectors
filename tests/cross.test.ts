@@ -32,7 +32,7 @@ it('encrypt (theirs) / decrypt (ours)', async () => {
 
     // simulate having only one of the recipient private keys
     const recipientPrivateKeys =  { "keys": [  privateKeyJwk  ] }
-    const decryption = await hpke.json.decrypt({ jwe, privateKeys: recipientPrivateKeys})
+    const decryption = await hpke.KeyEncryption.decrypt({ jwe, privateKeys: recipientPrivateKeys})
     expect(new TextDecoder().decode(decryption.plaintext)).toBe(`✨ It’s a dangerous business, Frodo, going out your door. ✨`);
     expect(new TextDecoder().decode(decryption.aad)).toBe('💀 aad');
 })
@@ -51,7 +51,7 @@ it('encrypt (ours) / decrypt (theirs)', async () => {
   const plaintext = new TextEncoder().encode(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
   const aad = new TextEncoder().encode('💀 aad')
   const contentEncryptionAlgorithm = 'A128GCM'
-  const jwe = await hpke.json.encrypt({
+  const jwe = await hpke.KeyEncryption.encrypt({
     protectedHeader: { enc: contentEncryptionAlgorithm },
     plaintext,
     additionalAuthenticatedData: aad,

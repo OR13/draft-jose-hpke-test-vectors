@@ -65,12 +65,9 @@ it('jwe compact', async () => {
   )
     .setProtectedHeader({ alg: 'ECDH-ES+A128KW', enc: 'A128GCM' })
     .encrypt(key1.publicKey)
-
   const { plaintext, protectedHeader } = await jose.compactDecrypt(jwe, key1.privateKey)
-
   expect(protectedHeader.alg).toBe('ECDH-ES+A128KW')
   expect(protectedHeader.enc).toBe('A128GCM')
   // protected header also protectes the epk.
-
   expect(new TextDecoder().decode(plaintext)).toBe('It’s a dangerous business, Frodo, going out your door.')
 })

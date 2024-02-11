@@ -1,5 +1,5 @@
 import * as keys from './keys'
-import * as compact from './compact'
-import * as json from './json'
+import * as IntegratedEncryption from './IntegratedEncryption'
+import * as KeyEncryption from './KeyEncryption'
 
-export { keys, compact, json }
+export { keys, IntegratedEncryption, KeyEncryption }
