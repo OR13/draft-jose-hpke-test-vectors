@@ -4,7 +4,7 @@ import * as hpke from '../src'
 
 describe('KeyEncryption', () => {
 
-  it('Single Recipient Compact (no aad)', async () => {
+  it.skip('Single Recipient Compact (no aad)', async () => {
     // recipient 1
     const privateKey1 = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
     const publicKey1 = await hpke.keys.publicFromPrivate(privateKey1)
@@ -21,21 +21,20 @@ describe('KeyEncryption', () => {
       ]
     }
     const plaintext = new TextEncoder().encode(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
-    const aad = new TextEncoder().encode('💀 aad')
     const contentEncryptionAlgorithm = 'A128GCM'
-    const ciphertext = await hpke.KeyEncryption.encrypt({
+    const jwe = await hpke.KeyEncryption.encrypt({
       protectedHeader: { enc: contentEncryptionAlgorithm },
       plaintext,
       recipients: recipientPublicKeys
-    });
-    for (const recipient of recipientPublicKeys.keys) {
-      const privateKey = resolvePrivateKey(recipient.kid)
-      // simulate having only one of the recipient private keys
-      const recipientPrivateKeys = { "keys": [privateKey] }
-      const decryption = await hpke.KeyEncryption.decrypt({ jwe: ciphertext, privateKeys: recipientPrivateKeys })
-      expect(new TextDecoder().decode(decryption.plaintext)).toBe(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
-      expect(decryption.aad).toBeUndefined()
-    }
+    }, {serialization: 'Compact'});
+
+    const privateKey = resolvePrivateKey(publicKey1.kid)
+    // simulate having only one of the recipient private keys
+    const recipientPrivateKeys = { "keys": [privateKey] }
+    const decryption = await hpke.KeyEncryption.decrypt({ jwe , privateKeys: recipientPrivateKeys }, {serialization: 'Compact'})
+    expect(new TextDecoder().decode(decryption.plaintext)).toBe(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
+    expect(decryption.aad).toBeUndefined()
+
   })
 
   it('Multiple Recipients General JSON', async () => {

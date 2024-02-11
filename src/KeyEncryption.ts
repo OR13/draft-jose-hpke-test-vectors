@@ -21,8 +21,18 @@ const sortJsonSerialization = (jwe: any)=> {
   }))
 }
 
+const prepareAad = (protectedHeader: any, aad?: Uint8Array) => {
+  let textAad = base64url.encode(JSON.stringify(protectedHeader))
+  if (aad){
+    textAad += '.' + base64url.encode(aad)
+  }
+  return textAad
+
+}
+
 export const encrypt = async (
-  req: RequestGeneralEncrypt
+  req: RequestGeneralEncrypt,
+  options = {serialization: 'GeneralJson'}
 ): Promise<any> => {
 
   // prepare the encrypted content for all recipients
@@ -118,11 +128,24 @@ export const encrypt = async (
   }
 
   jwe.protected = protectedHeader
-  return sortJsonSerialization(jwe);
+  const general =  sortJsonSerialization(jwe);
+  if (options.serialization === 'GeneralJson'){
+    return general
+  }
+  if (options.serialization === 'Compact'){
+    if (general.recipients.length > 1){
+      throw new Error('Compact serialization does not support multiple recipients')
+    }
+    const compact = `${general.protected}.${general.recipients[0].encrypted_key}.${general.iv}.${general.ciphertext}.${general.tag}`
+    return compact
+  }
+ 
+
+  throw new Error('Unsupported serialization')
 }
 
 export type RequestGeneralDecrypt = {
-  jwe: any,
+  jwe: string | any, // need types
   privateKeys: JWKS
 }
 
@@ -153,8 +176,28 @@ const produceDecryptionResult = async (protectedHeader: string, ciphertext: stri
   return decryption
 }
 
-export const decrypt = async (req: RequestGeneralDecrypt): Promise<any> => {
-  const { protected: protectedHeader, recipients, iv, ciphertext, aad, tag } = req.jwe;
+export const decrypt = async (req: RequestGeneralDecrypt, options = {serialization: 'GeneralJson'}): Promise<any> => {
+  let { protected: protectedHeader, recipients, iv, ciphertext, aad, tag } = {} as any
+  if (options.serialization === 'GeneralJson'){
+    if (typeof req.jwe !== 'object'){
+        throw new Error('GeneralJson decrypt requires jwe as object')
+    }
+    ({ protected: protectedHeader, recipients, iv, ciphertext, aad, tag } = req.jwe);
+  }
+
+  if (options.serialization === 'Compact'){
+    if (typeof req.jwe === 'object'){
+        throw new Error('Compact decrypt requires jwe as string')
+    }
+    const [protectedHeader,] = req.jwe.split('.')
+
+    // console.log(parts)
+    // ({ protected: protectedHeader, recipients, iv, ciphertext, aad, tag } = req.jwe);
+  }
+ 
+
+  
+  
 
   // find a recipient for which we have a private key
   let matchingRecipient = undefined
