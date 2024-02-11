@@ -145,6 +145,8 @@ describe('KeyEncryption', () => {
       recipients: recipientPublicKeys
     }, {serialization: 'Compact'});
 
+    expect(jwe.split('.').length).toBe(5) // compact jwe is supported
+
     const privateKey = resolvePrivateKey(publicKey1.kid)
     // simulate having only one of the recipient private keys
     const recipientPrivateKeys = { "keys": [privateKey] }
