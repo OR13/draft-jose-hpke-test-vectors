@@ -26,7 +26,6 @@ describe('KeyEncryption', () => {
     const ciphertext = await hpke.KeyEncryption.encrypt({
       protectedHeader: { enc: contentEncryptionAlgorithm },
       plaintext,
-      // additionalAuthenticatedData: aad,
       recipients: recipientPublicKeys
     });
     for (const recipient of recipientPublicKeys.keys) {
@@ -35,6 +34,7 @@ describe('KeyEncryption', () => {
       const recipientPrivateKeys = { "keys": [privateKey] }
       const decryption = await hpke.KeyEncryption.decrypt({ jwe: ciphertext, privateKeys: recipientPrivateKeys })
       expect(new TextDecoder().decode(decryption.plaintext)).toBe(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
+      expect(decryption.aad).toBeUndefined()
     }
   })
 
@@ -82,6 +82,7 @@ describe('KeyEncryption', () => {
       const recipientPrivateKeys = { "keys": [privateKey] }
       const decryption = await hpke.KeyEncryption.decrypt({ jwe: ciphertext, privateKeys: recipientPrivateKeys })
       expect(new TextDecoder().decode(decryption.plaintext)).toBe(`It’s a 💀 dangerous business 💀, Frodo, going out your door.`);
+      expect(decryption.aad).toBeDefined()
       expect(new TextDecoder().decode(decryption.aad)).toBe('💀 aad');
     }
 
