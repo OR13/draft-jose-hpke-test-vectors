@@ -19,13 +19,15 @@ it('jwe json multiple recipient', async () => {
     .setUnprotectedHeader({ alg: 'RSA-OAEP-384' })
     .encrypt()
 
-
-  const { plaintext, protectedHeader, additionalAuthenticatedData } = await jose.generalDecrypt(jwe, key1.privateKey);
+  const { plaintext, protectedHeader, additionalAuthenticatedData } = await jose.generalDecrypt(jwe, key1.privateKey) as any;
   expect(new TextDecoder().decode(additionalAuthenticatedData)).toBe('💀 aad')
   expect(new TextDecoder().decode(plaintext)).toBe('✨ It’s a dangerous business, Frodo, going out your door. ✨')
-  expect(protectedHeader).toEqual({
-    "enc": "A128GCM"
-  })
+  
+  expect(protectedHeader.enc).toBe('A128GCM')
+  expect(protectedHeader.alg).toBeUndefined()
+  expect(protectedHeader.epk).toBeUndefined()
+
+  
 
   // some extra tests here to confirm key wrapping basics
   const [r0] = jwe.recipients as any;
@@ -52,9 +54,11 @@ it('jwe json single recipient', async () => {
   const { plaintext, protectedHeader, additionalAuthenticatedData } = await jose.generalDecrypt(jwe, key1.privateKey) as any;
   expect(new TextDecoder().decode(additionalAuthenticatedData)).toBe('💀 aad')
   expect(new TextDecoder().decode(plaintext)).toBe('✨ It’s a dangerous business, Frodo, going out your door. ✨')
+  expect(protectedHeader.alg).toBeUndefined()
   expect(protectedHeader.enc).toBe('A128GCM')
   expect(protectedHeader.epk.kty).toBe('EC')
   expect(protectedHeader.epk.crv).toBe('P-256')
+  
   
 })
 
@@ -65,9 +69,11 @@ it('jwe compact', async () => {
   )
     .setProtectedHeader({ alg: 'ECDH-ES+A128KW', enc: 'A128GCM' })
     .encrypt(key1.publicKey)
-  const { plaintext, protectedHeader } = await jose.compactDecrypt(jwe, key1.privateKey)
+  const { plaintext, protectedHeader } = await jose.compactDecrypt(jwe, key1.privateKey) as any
   expect(protectedHeader.alg).toBe('ECDH-ES+A128KW')
   expect(protectedHeader.enc).toBe('A128GCM')
+  expect(protectedHeader.epk.kty).toBe('EC')
+  expect(protectedHeader.epk.crv).toBe('P-256')
   // protected header also protectes the epk.
   expect(new TextDecoder().decode(plaintext)).toBe('It’s a dangerous business, Frodo, going out your door.')
 })
