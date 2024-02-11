@@ -26,7 +26,7 @@ describe('KeyEncryption', () => {
     const ciphertext = await hpke.KeyEncryption.encrypt({
       protectedHeader: { enc: contentEncryptionAlgorithm },
       plaintext,
-      additionalAuthenticatedData: aad,
+      // additionalAuthenticatedData: aad,
       recipients: recipientPublicKeys
     });
     for (const recipient of recipientPublicKeys.keys) {
