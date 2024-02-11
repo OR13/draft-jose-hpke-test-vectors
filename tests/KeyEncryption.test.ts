@@ -27,7 +27,6 @@ describe('KeyEncryption', () => {
       plaintext,
       recipients: recipientPublicKeys
     }, {serialization: 'GeneralJson'});
-    // console.log(JSON.stringify(jwe, null, 2))
     const privateKey = resolvePrivateKey(publicKey1.kid)
     const recipientPrivateKeys = { "keys": [privateKey] }
     const decryption = await hpke.KeyEncryption.decrypt({ jwe , privateKeys: recipientPrivateKeys }, {serialization: 'GeneralJson'})

@@ -41,7 +41,7 @@ it('encrypt / decrypt', async () => {
     recipients: recipientPublicKeys
   });
 
-  fs.writeFileSync('./example.jwe.json', JSON.stringify(jwe, null, 2))
+  // fs.writeFileSync('./example.jwe.json', JSON.stringify(jwe, null, 2))
 
   for (const recipient of recipientPublicKeys.keys){
     const privateKey = resolvePrivateKey(recipient.kid)
