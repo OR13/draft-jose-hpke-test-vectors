@@ -35,47 +35,15 @@ export const encrypt = async (
   options = {serialization: 'GeneralJson'}
 ): Promise<any> => {
 
-  // prepare the encrypted content for all recipients
-  let jwe = {} as any;
-
-  // generate a content encryption key for a content encryption algorithm
-  const contentEncryptionKey = crypto.randomBytes(16); // for A128GCM
-
-  // generate an initialization vector for use with the content encryption key
-  const initializationVector = crypto.getRandomValues(new Uint8Array(12)); // possibly wrong
-  const iv = base64url.encode(initializationVector)
-
-  // create the protected header
-  // top level protected header only has "enc"
-  const protectedHeader = base64url.encode(JSON.stringify(req.protectedHeader))
-
-  // encrypt the plaintext with the content encryption algorithm
-
-  let textAad = base64url.encode(JSON.stringify(req.protectedHeader))
-  if (req.additionalAuthenticatedData){
-    textAad += '.' + base64url.encode(req.additionalAuthenticatedData)
-  }
-
-  const jweAad =  textAad
-
-  const encryption = await mixed.gcmEncrypt(
-    req.protectedHeader.enc,
-    req.plaintext,
-    contentEncryptionKey,
-    initializationVector,
-    new TextEncoder().encode(jweAad),
-  )
-
-  const ciphertext = base64url.encode(encryption.ciphertext)
-  const tag = base64url.encode(encryption.tag)
-  jwe.ciphertext = ciphertext;
-  jwe.iv = iv;
-  jwe.tag = tag;
-  // for each recipient public key, encrypt the content encryption key to the recipient public key
-  // and add the result to the unprotected header recipients property
   const unprotectedHeader = {
     recipients: [] as HPKERecipient[]
   }
+
+  let jweAad = prepareAad(req.protectedHeader, req.additionalAuthenticatedData)
+
+   // generate a content encryption key for a content encryption algorithm
+   const contentEncryptionKey = crypto.randomBytes(16); // for A128GCM
+
   for (const recipient of req.recipients.keys) {
     if (isKeyAlgorithmSupported(recipient)) {
       const suite = suites[recipient.alg as JOSE_HPKE_ALG]
@@ -121,6 +89,39 @@ export const encrypt = async (
     }
 
   }
+
+  // prepare the encrypted content for all recipients
+  let jwe = {} as any;
+
+ 
+
+  // generate an initialization vector for use with the content encryption key
+  const initializationVector = crypto.getRandomValues(new Uint8Array(12)); // possibly wrong
+  const iv = base64url.encode(initializationVector)
+
+  // create the protected header
+  // top level protected header only has "enc"
+  const protectedHeader = base64url.encode(JSON.stringify(req.protectedHeader))
+
+  // encrypt the plaintext with the content encryption algorithm
+
+
+  const encryption = await mixed.gcmEncrypt(
+    req.protectedHeader.enc,
+    req.plaintext,
+    contentEncryptionKey,
+    initializationVector,
+    new TextEncoder().encode(jweAad),
+  )
+
+  const ciphertext = base64url.encode(encryption.ciphertext)
+  const tag = base64url.encode(encryption.tag)
+  jwe.ciphertext = ciphertext;
+  jwe.iv = iv;
+  jwe.tag = tag;
+  // for each recipient public key, encrypt the content encryption key to the recipient public key
+  // and add the result to the unprotected header recipients property
+ 
   jwe.recipients = unprotectedHeader.recipients
 
   if (req.additionalAuthenticatedData) {
