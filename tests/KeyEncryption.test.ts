@@ -70,6 +70,13 @@ describe('KeyEncryption', () => {
     expect(decryption.aad).toBeUndefined()
   })
 
+  // expect alg to be in protected header
+  it.todo('Multiple Recipients all the same alg')
+
+  // expect alg to be in unprotected header
+  it.todo('Multiple Recipients all the same alg')
+
+
   it('Multiple Recipients General JSON', async () => {
     // recipient 1
     const privateKey1 = await hpke.keys.generate('HPKE-Base-P256-SHA256-AES128GCM')
